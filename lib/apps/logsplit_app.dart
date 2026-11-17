@@ -173,54 +173,60 @@ class _LogSplitAppState extends State<LogSplitApp> {
             ),
           ),
           // Lista renderizando os atributos do LogToken
+          // Lista renderizando os atributos do LogToken com SelectionArea único
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: widget.logsSplit.length,
-                itemBuilder: (context, index) {
-                  final log = widget.logsSplit[index];
+              child: SelectionArea(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  addAutomaticKeepAlives: false,
+                  itemCount: widget.logsSplit.length,
+                  itemBuilder: (context, index) {
+                    final log = widget.logsSplit[index];
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Ícone do token
-                        Padding(
-                          padding: const EdgeInsets.only(top: 1, right: 6),
-                          child: Icon(log.icone, color: log.corTag, size: 13),
-                        ),
-                        // Tag + Mensagem limpa selecionável
-                        Expanded(
-                          child: SelectableText.rich(
-                            TextSpan(
-                              style: const TextStyle(
-                                fontFamily: 'CustomFontA',
-                                fontSize: 11,
-                              ),
-                              children: [
-                                if (log.tag.isNotEmpty)
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Ícone do token
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1, right: 6),
+                            child: Icon(log.icone, color: log.corTag, size: 13),
+                          ),
+                          // Tag + Mensagem limpa leve
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                style: const TextStyle(
+                                  fontFamily: 'CustomFontA',
+                                  fontSize: 11,
+                                ),
+                                children: [
+                                  if (log.tag.isNotEmpty)
+                                    TextSpan(
+                                      text: "${log.tag} ",
+                                      style: TextStyle(
+                                        color: log.corTag,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   TextSpan(
-                                    text: "${log.tag} ",
-                                    style: TextStyle(
-                                      color: log.corTag,
-                                      fontWeight: FontWeight.bold,
+                                    text: log.mensagemLimpa,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
                                     ),
                                   ),
-                                TextSpan(
-                                  text: log.mensagemLimpa,
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),

@@ -1,6 +1,7 @@
 // lib/apps/monitor_app.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class MonitorApp extends StatefulWidget {
   final List<String> logs;
@@ -167,25 +168,30 @@ class _MonitorAppState extends State<MonitorApp> {
             ),
           ),
           // Lista de logs
+          // Lista de logs otimizada com SelectionArea único
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: widget.logs.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: SelectableText(
-                      widget.logs[index],
-                      style: const TextStyle(
-                        color: Color(0xFF00FF66),
-                        fontFamily: 'CustomFontA',
-                        fontSize: 11,
+              child: SelectionArea(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(300),
+                  addAutomaticKeepAlives: false,
+                  itemCount: widget.logs.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        widget.logs[index],
+                        style: const TextStyle(
+                          color: Color(0xFF00FF66),
+                          fontFamily: 'CustomFontA',
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),

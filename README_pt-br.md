@@ -1,73 +1,79 @@
-# SD-DOS Server Manager (v1.0)
+# sd_dos_dart
+Gerenciador visual leve em estilo sistema operacional retrô para **7 Days to Die**, com controle automatizado de zonas PVP/PVE, radar de jogadores em tempo real, gerador de proxy integrado e chat nativo (Flutter + Python).
 
-Gerenciador visual leve para servidores dedicados de **7 Days to Die**, inspirado em sistemas operacionais clássicos. Desenvolvido para oferecer controle automatizado de fronteiras PVP/PVE, monitoramento de logs e radar tático sem exigir configurações pesadas.
+![Interface](./sd-dos_v1_0.png)
 
-# Objetivo do projeto
+[🇺🇸 Read in English](README.md)
 
-Criar um ambiente visualmente amigavel pra gestão segura de servidores e editores de arquivos de jogo. Leve e com multiplas ferramentas. Que em sua versão final vai rodar em Computadores, navegadores e celulares android (sim, vai dar pra usar aquele processador ocioso do seu celular velho guardado na gaveta).
+# SD-DOS Server Manager (v1.1)
 
-## Funcionalidades da v1.0
-* **Maps:** Mapa interativo com zoom, visualização de zonas PVE configuráveis e rastreamento de jogadores em tempo real.
-* **Automação PVP / PVE:** Envio automático de avisos privados quando um jogador cruza a fronteira entre biomas seguros e hostis.
-* **Zorkut Chat:** Interface de chat global compatível tanto com comandos nativos (`say`) quanto com o mod Prisma Core (`sayadmin`).
-* **Log Splitter & Monitor:** Filtragem inteligente de eventos do servidor (`[LP]`, `[CHAT]`, `[CMD]`, `[PC]`) com trava automática de rolagem.
-* **Prompt (CMD):** Terminal integrado para execução rápida de comandos administrativos via Telnet.
+Gerenciador visual leve para servidores dedicados de **7 Days to Die**, inspirado em sistemas operacionais clássicos. Desenvolvido para oferecer controle automático de fronteiras PVP/PVE, monitoramento de logs, radar tático de jogadores e configuração de rede sem precisar editar código-fonte.
 
-## Funcionalidades planejadas para a próxima versão
-* Gerador de scripts Websocket já configurado por meio de um novo aplicativo.
-* Configuração de IP, porta e credenciais via interface, sem a necessidade de edição manual de arquivos.
-* Primeiro executável (.exe) para Windows.
+## Novidades da v1.1
+* **Aplicativo NetConfig (Rede TCP/IP e Gerador de Scripts):** Configure o IP do Proxy, porta e token secreto diretamente pela interface com salvamento local (`shared_preferences`) e botões de ocultar/mostrar dados (`obscureText`) para proteger streamers durante transmissões ao vivo.
+* **Gerador Integrado de `.py` e `.bat`:** Gere e baixe o script Python da ponte WebSocket e o atalho inicializador do Windows `.bat` (com suporte automático ao caminho relativo `%~dp0`) já configurados pela própria janela do programa.
+* **Conexão WebSocket Blindada:** Implementação de IDs de geração de tentativa, bloqueio contra cliques repetidos (*debounce*) no botão de conectar e verificação automática `ping_interval` / `ping_timeout` para eliminar conexões fantasmas, sessões duplicadas e loops de reconexão.
+* **Monitores de Log de Alta Performance:** Adição de buffer circular limitado a 1.000 linhas na memória e renderização otimizada com `SelectionArea` no **Monitor** e no **LogSplit**, evitando travamentos ao rolar listas longas após horas de servidor ativo.
+* **Executável para Windows (`.exe`):** Primeira versão compilada disponível para Windows sem necessidade de editar arquivos manualmente.
+
+## Funcionalidades Principais
+* **NetConfig:** Configuração visual de rede, persistência local de credenciais e exportação rápida dos arquivos `.py` e `.bat` do proxy.
+* **Maps:** Mapa interativo com zoom, camadas configuráveis de zonas PVE e rastreamento de jogadores em tempo real.
+* **Automação PVP / PVE:** Envio automático de avisos privados para jogadores que cruzam fronteiras entre biomas seguros (PVE) e hostis (PVP).
+* **Zorkut Chat:** Interface de chat global compatível tanto com comandos nativos do console (`say`) quanto com Prisma Core (`sayadmin`).
+* **Log Splitter & Monitor:** Filtragem inteligente de eventos do servidor (`[LP]`, `[CHAT]`, `[CMD]`, `[PC]`) com trava automática de rolagem e proteção de memória.
+* **Prompt (CMD):** Terminal embutido para envio rápido de comandos administrativos via Telnet.
+
+## Objetivo do Projeto
+
+Criar um ambiente visualmente amigável para o gerenciamento seguro de servidores de jogos e editores de arquivos. Leve e com múltiplas ferramentas. Em sua versão final, rodará em computadores, navegadores e celulares Android (sim, você poderá reaproveitar o processador parado daquele celular antigo guardado na gaveta).
+
+> **Nota (v1.1):** A interface atual e as variáveis internas estão em Português. O suporte a múltiplos idiomas está planejado para as próximas versões.
 
 ## Tecnologias Utilizadas
-* **Frontend / Interface:** Flutter (Desktop)
-* **Backend / Túnel Telnet:** Python (WebSockets)
+* **Frontend / Interface:** Flutter (Windows Desktop / Web)
+* **Backend / Ponte Telnet:** Python (`websockets`)
 
-## Instalação e Configuração (v1.0)
+## Lógica de Execução
 
-Antes de executar o gerenciador, preencha manualmente as credenciais do servidor e os parâmetros de rede nos arquivos do projeto. O gerenciador foi desenvolvido para usar um script Python que mantém a conexão com o servidor via telnet por meio de websockets. Use um arquivo .bat para execução com um clique no Windows.
+* O script proxy em Python pode rodar diretamente na máquina do servidor de jogo ou em outro computador. Ele mantém baixíssimo consumo de CPU e isola as credenciais do Telnet das interfaces clientes.
+* Múltiplas interfaces do gerenciador podem se conectar simultaneamente ao mesmo proxy WebSocket sem sobrecarregar a porta Telnet do servidor.
+* Na prática, você pode rodar tudo no mesmo computador ou hospedar o **Servidor do Jogo**, o **Proxy Python** e as **Interfaces do Gerenciador** em máquinas separadas.
 
-## Lógica de execução
+## Instalação e Configuração Rápida (v1.1)
 
-* O script pode rodar diretamente no servidor ou em outro computador. Com estabilidade e com custo minimo de processamento pois não não roda verificações e calculos complexos e com possibilidade de implementação de filtros de segurança.
-* O gerenciador se conecta ao websocket apartir de qualquer computador sem precisar se conectar diretemente ao servidor, e permite multiplas conexões estaveis mesmo realizando verificalções, tratamentos e calculos complexos.
-* Na prática você pode rodar tudo no mesmo computador, ou ter SERVIDOR, SCRIPT e multiplos GERENCIADORES em diferentes locais.
-* Na versão atual, multiplas conexões ao telnet usando o gerenciador vão sobrecarregar o telnete devido a aplicação automatica de regras de tramento já configuradas. Mas vocês pode usar qualquer ferramenta de conexão websocket pra ler logins e enviar comandos usando o mesmo tipo de conexão e suas credenciais.
+Você não precisa mais editar arquivos de código-fonte manualmente para configurar sua conexão.
 
-### 1. Ponte WebSocket em Python (`WebsocketsExample.py`)
-Instale a biblioteca necessária:
+### 1. Inicie o Gerenciador
+* **Executável Windows:** Baixe o arquivo `.zip` da última release, extraia a pasta completa (mantenha o `.exe`, as `.dll` e a pasta `data/` juntos) e execute `sd_dos_dart.exe`.
+* **Pelo Código-Fonte:** Execute `flutter pub get` e `flutter run -d windows` (ou `-d chrome`).
+* No primeiro acesso, o aplicativo **NetConfig** será aberto automaticamente caso nenhuma configuração salva seja encontrada.
+
+### 2. Gere o Script Proxy (`.py` e `.bat`)
+Instale a dependência WebSocket do Python na máquina onde o script irá rodar:
 ```bash
 pip install websockets
 ```
 
-Abra o script Python e substitua os marcadores (`<...>`) pelos dados do seu servidor:
-* **Configurações do Telnet do Jogo:**
-  * `SDTD_HOST`: Endereço IP do servidor de 7 Days to Die (ex: `"127.0.0.1"`).
-  * `SDTD_PORT`: Porta Telnet configurada no `serverconfig.xml` (padrão `8081`, número inteiro sem aspas).
-  * `SDTD_PASSWORD`: Senha do Telnet do servidor.
-* **Configurações do Servidor WebSocket (Interface):**
-  * `WS_HOST`: Use `"0.0.0.0"` para aceitar conexões externas/celulares, ou `"127.0.0.1"` apenas para uso local.
-  * `WS_PORT`: Porta que o painel Flutter usará para se conectar (ex: `8082`, número inteiro sem aspas).
-  * `WS_TOKEN`: Crie uma senha/token secreto para autenticar suas interfaces.
+Dentro do **NetConfig**, acesse a aba **2. Gerar Script (.py / .bat)**:
+1. **Configuração do Telnet (7D2D):** Informe o IP do servidor (`127.0.0.1` se estiver na mesma máquina), a `TelnetPort` (padrão `8081`) e a `TelnetPassword` configurada no `serverconfig.xml`.
+2. **Configuração da Ponte WebSocket:** Defina `WS_HOST` (`0.0.0.0` para permitir conexões externas ou `127.0.0.1` apenas para acesso local), `WS_PORT` (padrão `8082`) e crie um `WS_TOKEN` forte.
+3. **Exportar Arquivos:** Clique em **BAIXAR SCRIPT (.PY)** e **BAIXAR ATALHO (.BAT)** para salvar ambos na mesma pasta. Depois, dê um duplo clique no arquivo `.bat` para iniciar a ponte.
 
-### 2. Script de Inicialização Windows (`IniciarWebsocketsExample.bat`)
-Edite o arquivo `.bat` para apontar para a pasta onde você salvou o script Python:
-* Ajuste a letra da unidade de disco (ex: `I:` ou `C:`) e substitua `<CAMINHO_DO_SEU_SCRIPT>` pelo caminho da pasta.
-* Substitua `<NOME_DO_SEU_SCRIPT>.py` pelo nome exato do seu arquivo Python.
+### 3. Conecte a Interface
+Dentro do **NetConfig**, acesse a aba **1. Conexão do Painel**:
+* Preencha o IP do Proxy, a Porta e o `WS_TOKEN` criado na etapa anterior, e clique em **SALVAR E CONECTAR AO PROXY**.
+* Os dados ficam salvos localmente no seu dispositivo para reconexão automática nas próximas execuções.
 
-### 3. Interface Flutter (`lib/main.dart`)
-Abra o arquivo `lib/main.dart` e ajuste os parâmetros de conexão e mapa:
-* **URL de Conexão WebSocket:** Atualize o IP, a porta e o token na string de conexão (`ws://<WS_HOST>:<WS_PORT>/?token=<WS_TOKEN>`).
-* **Zonas PVE (`retangulosPve`):** Ajuste os retângulos de coordenadas `[minX, maxX, minZ, maxZ]` de acordo com as áreas seguras do seu servidor. Por padrão vem rastreada a Floresta Pinhais do Navezgane da v3.4.0(b10). Otimize os retangulos pra uma quantidade minima pra não sobrecarregar as verificações.
-* **Mapa Customizado (Opcional):** Você pode carregar qualquer imagem quadrada de mapa (`.png` / `.webp`) direto pelo botão **Mapa** na barra superior do app Maps, informando o caminho do arquivo e o tamanho do mundo (ex: `6144`, `8192`, `10240`, `16384`). Por padrão é carregado o assets/maps/Navezgane/images/Navezgane.webp
+## Personalização Avançada (Código-Fonte)
 
-### 4. Bot Admin
-* Procure e substitua o termo BotAdmin pelo nome do seu bot administrador. Isso está sendo projetado para implementações futuras. Se você não alterar isso, o BotAdmin ainda aparecerá em mensagens e alertas.
-* Envia mensagens privadas para jogadores quando eles alternam entre áreas PvP e PvE.
-* Envia mensagens globais de administrador (permissão 99) no modo Prisma Core através do aplicativo Zorkut. Não aplique a permissão 99 aos jogadores sem revisar os arquivos de configuração do servidor. As permissões de administrador são aplicadas por padrão no arquivo para níveis iguais ou inferiores a 100. 0 (zero) é o nível máximo. Tentar usar este comando aplicando o nível de autorização necessário a todos dará permissões de comando de administrador a todos. NÃO FAÇA ISSO! Até que você configure um novo sistema de permissões, use o seletor Vanilla não personalizado (clicando no botão) para mensagens globais.
+* **Zonas PVE (`retangulosPve` em `lib/main.dart`):** Ajuste os retângulos de coordenadas `[minX, maxX, minZ, maxZ]` para corresponder às áreas seguras do seu mapa (por padrão, a Floresta de Pinheiros de Navezgane está configurada).
+* **Mapa Personalizado (Opcional):** Carregue qualquer imagem quadrada de mapa (`.png` / `.webp`) diretamente pela barra superior do aplicativo **Maps**, informando o caminho do arquivo e o tamanho do mundo (`6144`, `8192`, `10240`, `16384`).
+* **Aviso sobre Permissões de Admin:** As mensagens globais no modo Prisma Core enviam atualmente o comando `sayadmin` com nível de permissão `99`. Não aplique nível de permissão `99` a jogadores comuns sem revisar os arquivos de configuração do seu servidor (`0` é o nível máximo de administrador, e níveis `<= 100` costumam liberar comandos administrativos por padrão). Em caso de dúvida, utilize o seletor **Vanilla** no Zorkut para enviar mensagens globais padrão via `say`.
 
 ## Licença
-Este projeto está sob **The Unlicense** (Domínio Público). Você é livre para copiar, modificar, publicar, usar ou distribuir este software para qualquer finalidade, sem necessidade de atribuição.
+Este projeto é distribuído sob a licença **The Unlicense** (Domínio Público). Você é livre para copiar, modificar, publicar, usar ou distribuir este software para qualquer finalidade sem necessidade de atribuição.
 
 # Transparência no Desenvolvimento e IA
 
-Projetado, arquitetado e testado em servidores reais. O Gemini e o GitHub Copilot (VS Code) auxiliaram o fluxo de trabalho estritamente como ferramentas de programação em pares, não como geradores de código independentes. Não houve geração automática de prompts nem desenvolvimento em massa — o desenvolvimento seguiu uma abordagem lenta, deliberada e modular, onde cada componente foi auditado, compreendido e testado manualmente sob condições extremas antes da integração.
+Projetado, arquitetado e testado em servidores reais. O Gemini e o GitHub Copilot (VS Code) auxiliaram o fluxo de trabalho estritamente como ferramentas de *pair programming*, e não como geradores autônomos de código. Não houve geração automática de prompts ou desenvolvimento em massa — cada componente foi construído de forma modular, auditado, compreendido e testado manualmente em condições extremas antes da integração.

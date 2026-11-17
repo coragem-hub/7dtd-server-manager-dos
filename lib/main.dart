@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sd_dos_dart/models/log_token.dart';
 import 'package:sd_dos_dart/apps/monitor_app.dart';
 import 'package:sd_dos_dart/apps/cmd_app.dart';
 import 'package:sd_dos_dart/apps/logsplit_app.dart';
 import 'package:sd_dos_dart/apps/zorkut_app.dart';
 import 'package:sd_dos_dart/apps/maps_app.dart';
+import 'package:sd_dos_dart/apps/netconfig_app.dart';
 import 'package:sd_dos_dart/models/jogador_status.dart';
 
 import 'dart:math';
+import 'dart:async';
 
 void main() {
   runApp(const SdDOSManager());
@@ -39,24 +43,28 @@ class DashboardPage extends StatefulWidget {
 
 // Estado do widget DashboardPage, que gerencia a conexão WebSocket e os logs
 class _DashboardPageState extends State<DashboardPage> {
-  //Substitua por <IP_DO_PROXY> antes de publicar.
-  final String ipProxy = "<IP_DO_PROXY>"; // "localhost" ou IP do servidor
-  //Substitua por <PORTA_DO_PROXY> antes de publicar.
-  final String portaProxy = "<PORTA_DO_PROXY>";
-  //Substitua por <TOKEN_DO_PROXY> antes de publicar.
-  final String token = "<TOKEN_DO_PROXY>";
+  String ipProxy = "";
+  String portaProxy = "8082";
+  String token = "";
 
   // Variáveis para gerenciar a conexão WebSocket
   WebSocketChannel? _channel;
   bool _conectado = false;
   bool _scriptConectado =
       false; // Fica true assim que receber a primeira linha do servidor
+  Timer? _timerReconexao;
+
+  Timer? _timerLp;
+  int _idTentativaConexao = 0;
+
+  // Se você já tiver um Timer para o loop de 'lp' (ex: Timer? _timerLp;), garanta que ele também seja cancelado abaixo.
 
   //== INICIO MODULO 1: LISTAS, CONSTANTES, VARIÁVEIS E LOOPS ==//
 
   final List<String> _logs =
       []; // Lista mestre de texto bruto do console do servidor
   final List<LogToken> _logsTratadosLogSplit = [];
+  static const int _limiteMaximoLogs = 1000;
   final List<JogadorStatus> _jogadoresOnline = [];
   final List<JogadorStatus> _jogadoresHistorico = [];
   int _contadorCiclosLp = 0;
@@ -82,14 +90,38 @@ class _DashboardPageState extends State<DashboardPage> {
   final _random = Random();
 
   void _iniciarLoopRastreamentoAleatorio() {
-    if (!_conectado || _channel == null) return;
-    _channel!.sink.add('lp');
-    // Gera um tempo aleatório em milissegundos
-    int proximoIntervaloMilissegundos = (10000 + _random.nextInt(20000))
-        .toInt();
-    // Agenda o próximo disparo com o tempo sorteado
-    Future.delayed(Duration(milliseconds: proximoIntervaloMilissegundos), () {
-      if (mounted) _iniciarLoopRastreamentoAleatorio();
+    // Evita iniciar dois ciclos simultâneos.
+    _timerLp?.cancel();
+    _timerLp = null;
+
+    _executarCicloLp();
+  }
+
+  // Executa um ciclo e agenda o próximo.
+  void _executarCicloLp() {
+    final canal = _channel;
+
+    // Não executa se não houver conexão ativa.
+    if (!mounted || !_conectado || canal == null) return;
+
+    // Envia o comando ao servidor.
+    try {
+      canal.sink.add('lp');
+    } catch (_) {
+      return;
+    }
+
+    // Sorteia o próximo intervalo: entre 10 e 30 segundos.
+    final intervalo = Duration(milliseconds: 10000 + _random.nextInt(20000));
+
+    // Agenda o próximo ciclo.
+    _timerLp = Timer(intervalo, () {
+      // Confere se ainda estamos usando a mesma conexão.
+      if (!mounted || !_conectado || !identical(_channel, canal)) {
+        return;
+      }
+
+      _executarCicloLp();
     });
   }
 
@@ -103,35 +135,88 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void initState() {
-    super.initState(); // Chama o método initState da classe pai
-    _conectarAoProxy(); // Tenta conectar ao Proxy Python assim que o widget é criado
+    super.initState();
+    _carregarConfiguracoesEConectar();
+  }
+
+  // Lê as credenciais salvas antes de tentar abrir o WebSocket
+  Future<void> _carregarConfiguracoesEConectar() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      ipProxy = prefs.getString('proxy_ip') ?? "";
+      portaProxy = prefs.getString('proxy_porta') ?? "8082";
+      token = prefs.getString('proxy_token') ?? "";
+    });
+
+    if (ipProxy.isEmpty || token.isEmpty) {
+      setState(() {
+        _logs.add("[Sistema] Nenhuma configuração de rede encontrada.");
+        _logs.add(
+          "[Sistema] Abra o aplicativo de Rede para configurar o Proxy.",
+        );
+        // Já abre a janela de configurações de rede automaticamente no primeiro uso
+        _appsAbertos['netconfig'] = true;
+        _appsMinimizados['netconfig'] = false;
+      });
+      _trazerParaFrente('netconfig');
+      return;
+    }
+
+    _conectarAoProxy();
+  }
+
+  // Função chamada pelo app NetConfig ao clicar em "Salvar e Conectar"
+  Future<void> _salvarEReconectarProxy({
+    required String novoIp,
+    required String novaPorta,
+    required String novoToken,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('proxy_ip', novoIp.trim());
+    await prefs.setString('proxy_porta', novaPorta.trim());
+    await prefs.setString('proxy_token', novoToken.trim());
+
+    setState(() {
+      ipProxy = novoIp.trim();
+      portaProxy = novaPorta.trim();
+      token = novoToken.trim();
+      _adicionarLogBruto(
+        "[Sistema] Configurações de rede salvas. Reiniciando conexão...",
+      );
+    });
+
+    _conectarAoProxy();
   }
 
   // Função auxiliar para centralizar a reconexão segura
   void _tratarDesconexao(String mensagemErro) {
-    if (!_conectado && _logs.last.contains("Tentando reconectar")) {
-      return; // Evita logs duplicados no loop
+    if (ipProxy.isEmpty || token.isEmpty) return;
+
+    if (_timerReconexao != null && _timerReconexao!.isActive) {
+      return;
     }
 
+    _timerLp?.cancel();
+    _timerLp = null;
     // Atualiza o estado para indicar que a conexão foi perdida e tenta reconectar após 5 segundos
     setState(() {
       _conectado = false;
-      _logs.add(mensagemErro);
-      _logs.add("[Sistema] Tentando reconectar em 5 segundos...");
+      _scriptConectado = false;
+      _adicionarLogBruto(
+        "[Sistema] Desconectado ($mensagemErro). Tentando reconectar em 5s...",
+      );
     });
 
-    // Limpa o canal antigo
-    _channel = null;
-
-    // Aumentamos para 5 segundos para dar fôlego ao app e ao sistema operacional
-    Future.delayed(const Duration(seconds: 5), () {
-      // Verifica se o widget ainda está na tela antes de rodar código assíncrono
-      if (mounted) _conectarAoProxy();
+    _timerReconexao = Timer(const Duration(seconds: 5), () {
+      _conectarAoProxy();
     });
   }
 
   @override
   void dispose() {
+    _timerReconexao?.cancel(); // <-- Adicione apenas esta linha aqui
+    _timerLp?.cancel(); // <-- Adicione apenas esta linha aqui
+
     // Fecha o canal WebSocket e libera os recursos dos controladores
     _channel?.sink.close();
     _channel = null;
@@ -147,63 +232,85 @@ class _DashboardPageState extends State<DashboardPage> {
   //== INICIO MODULO 2.2: CONEXÃO E TRATAMENTO DE LOGS BRUTOS==//
 
   void _conectarAoProxy() async {
-    // Evita criar conexões duplicadas se já estiver tentando conectar
-    if (_channel != null) {
-      // Se já houver um canal existente, fecha-o antes de criar um novo
+    // 1. Incrementa o ID desta tentativa. Qualquer tentativa anterior em 'await' será invalidada.
+    final int tentativaAtual = ++_idTentativaConexao;
+
+    // 2. Cancela timers ativos imediatamente
+    _timerLp?.cancel();
+    _timerLp = null;
+    _timerReconexao?.cancel();
+    _timerReconexao = null;
+
+    // 3. Fecha o canal anterior de forma limpa (sem parâmetros para não travar)
+    final canalAntigo = _channel;
+    _channel = null;
+    if (canalAntigo != null) {
       try {
-        // Tenta fechar o canal existente
-        _channel!.sink.close(); // Fecha o canal existente
-      } catch (_) {} // Ignora qualquer erro ao fechar o canal existente
+        canalAntigo.sink.close();
+      } catch (_) {}
     }
 
-    // Atualiza o estado para indicar que está tentando conectar
+    if (ipProxy.isEmpty || token.isEmpty) return;
+
     setState(() {
-      _conectado = false; // Começa sempre como falso
-      _logs.add(
-        "[Sistema] Tentando conectar ao Proxy Python...",
-      ); // Adiciona um log indicando que está tentando conectar
+      _conectado = false;
+      _scriptConectado = false;
+      _adicionarLogBruto("[Sistema] Tentando conectar ao Proxy Python...");
     });
 
-    // Tenta criar uma nova conexão WebSocket com o Proxy Python
     try {
-      // Tenta criar uma nova conexão WebSocket
-      final url = 'ws://$ipProxy:$portaProxy/?token=$token'; // Cria a URL de conexão com o Proxy Python usando o IP, porta e token fornecidos
-      final channel = WebSocketChannel.connect(
-        Uri.parse(url),
-      ); // Cria um novo canal de comunicação WebSocket
+      final url = 'ws://$ipProxy:$portaProxy/?token=$token';
+      final channel = WebSocketChannel.connect(Uri.parse(url));
 
-      // Aguarda o 'ready' garante que o handshake terminou com sucesso
+      // Aguarda o handshake terminar
       await channel.ready;
 
-      // Atualiza o canal de comunicação WebSocket com o novo canal criado
+      // VERIFICAÇÃO CRÍTICA: Se o usuário clicou de novo enquanto este 'await' rodava,
+      // aborta esta conexão obsoleta imediatamente!
+      if (!mounted || tentativaAtual != _idTentativaConexao) {
+        try {
+          channel.sink.close();
+        } catch (_) {}
+        return;
+      }
+
       _channel = channel;
 
-      // Atualiza o estado para indicar que a conexão foi estabelecida com sucesso
       setState(() {
-        _conectado = true; // Atualiza o estado
-        _logs.add("[Sistema] Conectado com sucesso!");
+        _conectado = true;
+        _adicionarLogBruto("[Sistema] Conectado com sucesso!");
       });
 
       _iniciarLoopRastreamentoAleatorio();
 
-      _channel!.stream.listen(
+      final canalAtual = channel;
+
+      canalAtual.stream.listen(
         (mensagem) {
+          if (_channel != canalAtual || tentativaAtual != _idTentativaConexao) {
+            return;
+          }
+          // ... (SEU CÓDIGO DE TRATAMENTO DE MENSAGENS CONTINUA IGUAL AQUI) ...
+
           if (!_scriptConectado) setState(() => _scriptConectado = true);
           final linhaBruta = mensagem.toString();
 
           // 1. Tratamento: Identificando os tipos de Logs
           LogToken tokenTratado;
 
+          // REGRA 1: Se for o início do comando 'lp', limpamos a lista temporária dos online
           // REGRA 1: Se for o início do comando 'lp', limpamos a lista temporária e incrementamos o ciclo
           if (linhaBruta.contains("Executing command 'lp'")) {
             _jogadoresOnline.clear();
             _contadorCiclosLp++;
           }
 
+          // DESCARTE SILENCIOSO: Eco do comando 'say' disparado pelo próprio servidor
+          // Vai apenas para o Monitor bruto (_logs) e não polui o LogSplit como [NT]
           if (linhaBruta.contains("INF Chat (") &&
               linhaBruta.contains("from '-non-player-'")) {
             setState(() {
-              _logs.add(linhaBruta);
+              _adicionarLogBruto(linhaBruta);
             });
             _scrollParaOFinal();
             return;
@@ -301,7 +408,7 @@ class _DashboardPageState extends State<DashboardPage> {
             );
 
             setState(() {
-              _logsTratadosLogSplit.add(tokenLP);
+              _adicionarLogSplit(tokenLP);
             });
             _scrollParaOFinal();
             return; // Interceptado com sucesso, não precisa passar pelos filtros de baixo!
@@ -434,26 +541,28 @@ class _DashboardPageState extends State<DashboardPage> {
 
           // 2. Atualiza o Estado de forma otimizada
           setState(() {
-            _logs.add(linhaBruta);
+            _adicionarLogBruto(linhaBruta);
             // Alimenta a torneira do logsplit.exe com o objeto já processado
-            _logsTratadosLogSplit.add(tokenTratado);
+            _adicionarLogSplit(tokenTratado);
           });
           _scrollParaOFinal();
         },
 
         onDone: () {
-          _conectado = false;
-          _scriptConectado = false;
-          // Quando a conexão é encerrada, trata a desconexão e tenta reconectar
-          _tratarDesconexao("[⚠️ Erro] Conexão encerrada pelo servidor.");
+          if (_channel != canalAtual) {
+            return; // Ignora o fechamento de conexões antigas
+          }
+          _tratarDesconexao("Conexão encerrada pelo servidor");
         },
         onError: (erro) {
-          _conectado = false;
-          _scriptConectado = false;
-          _tratarDesconexao("[⚠️ Erro] Falha na conexão: $erro");
+          if (_channel != canalAtual) {
+            return; // Ignora erros de conexões antigas
+          }
+          _tratarDesconexao("Erro de rede: $erro");
         },
       );
     } catch (e) {
+      if (tentativaAtual != _idTentativaConexao) return;
       _tratarDesconexao("[⚠️ Erro] Não foi possível alcançar o servidor: $e");
     }
   }
@@ -535,7 +644,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       setState(() {
         // Alimenta ambas as listas locais para que o operador veja o log no monitor
-        _logsTratadosLogSplit.add(novoToken);
+        _adicionarLogSplit(novoToken);
       });
 
       _scrollParaOFinal();
@@ -568,6 +677,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final notifierPosicao = _posicoesJanelas[id]!;
 
+    // ValueListenableBuilder redesenha APENAS esta janela durante o arrasto
     // ValueListenableBuilder redesenha APENAS esta janela durante o arrasto
     return ValueListenableBuilder<Offset>(
       key: ValueKey('janela_$id'), // <-- CORREÇÃO 1: Identifica cada janela unicamente para o Flutter não misturar as posições
@@ -602,7 +712,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   onPanStart: ehCelular
                       ? null
                       : (_) {
-                          _trazerParaFrente(id); // Traz para frente quando o arrasto realmente inicia
+                          _trazerParaFrente(id); // <-- CORREÇÃO 2: Traz para frente quando o arrasto realmente inicia
                         },
                   onPanUpdate: ehCelular
                       ? null
@@ -702,6 +812,7 @@ class _DashboardPageState extends State<DashboardPage> {
     'logsplit': false,
     'zorkut': false,
     'maps': false,
+    'netconfig': false,
   };
   // Ordem de foco das janelas (Stack)
   final List<String> _ordemFoco = [
@@ -710,6 +821,7 @@ class _DashboardPageState extends State<DashboardPage> {
     'logsplit',
     'zorkut',
     'maps',
+    'netconfig',
   ];
   // Controla quais aplicativos estão minimizados
   final Map<String, bool> _appsMinimizados = {
@@ -718,6 +830,7 @@ class _DashboardPageState extends State<DashboardPage> {
     'logsplit': false,
     'zorkut': false,
     'maps': false,
+    'netconfig': false,
   };
   // Função para trazer uma janela para frente (foco)
   void _trazerParaFrente(String id) {
@@ -731,11 +844,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Controla a posição inicial das janelas de forma isolada (sem redesenhar o fundo ao arrastar)
   final Map<String, ValueNotifier<Offset>> _posicoesJanelas = {
-    'cmd': ValueNotifier(const Offset(0, 50)),
-    'monitor': ValueNotifier(const Offset(50, 100)),
-    'logsplit': ValueNotifier(const Offset(100, 150)),
-    'zorkut': ValueNotifier(const Offset(150, 200)),
-    'maps': ValueNotifier(const Offset(200, 250)),
+    'cmd': ValueNotifier(const Offset(0, 180)),
+    'monitor': ValueNotifier(const Offset(50, 180)),
+    'logsplit': ValueNotifier(const Offset(100, 180)),
+    'zorkut': ValueNotifier(const Offset(150, 180)),
+    'maps': ValueNotifier(const Offset(200, 180)),
+    'netconfig': ValueNotifier(const Offset(250, 180)),
   };
 
   // Controlador para o campo de entrada de comando
@@ -768,6 +882,24 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  void _adicionarLogBruto(String linha) {
+    _logs.add(linha);
+    if (_logs.length > _limiteMaximoLogs) {
+      // Remove o excesso do início da lista de uma só vez (muito mais rápido que removeAt(0))
+      _logs.removeRange(0, _logs.length - _limiteMaximoLogs);
+    }
+  }
+
+  void _adicionarLogSplit(LogToken token) {
+    _logsTratadosLogSplit.add(token);
+    if (_logsTratadosLogSplit.length > _limiteMaximoLogs) {
+      _logsTratadosLogSplit.removeRange(
+        0,
+        _logsTratadosLogSplit.length - _limiteMaximoLogs,
+      );
+    }
+  }
+
   //== FIM MODULO 3.1: DE GERENCIAMENTO DE JANELAS ==//
 
   //== INICIO MODULO 3.2: CONSTRUÇÃO DA INTERFACE PRINCIPAL ==//
@@ -786,14 +918,16 @@ class _DashboardPageState extends State<DashboardPage> {
             padding: const EdgeInsets.all(8.0),
             child: ListView.builder(
               controller: _scrollFundoController,
+              scrollCacheExtent: const ScrollCacheExtent.pixels(200),
+              addAutomaticKeepAlives: false,
               itemCount: _logs.length,
               itemBuilder: (context, index) {
                 return Text(
                   _logs[index],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(
-                      0x808cffb2,
-                    ), // Cinza escuro para ficar sutil ao fundo
+                    color: Color(0x808cffb2),
                     fontFamily: 'CustomFontA',
                     fontSize: 12,
                   ),
@@ -830,7 +964,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               border: Border.all(
@@ -845,14 +979,23 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Prompt (CMD)',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'Prompt (CMD)',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
                     // APP 2: Monitor de Logs Brutos //
                     GestureDetector(
                       onTap: () {
@@ -866,7 +1009,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            width: 72, // Fixa a largura exata (20 + 32 + 20)
+                            height: 72,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               border: Border.all(
@@ -882,9 +1027,19 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Monitor de Logs',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'Monitor de Logs',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -903,7 +1058,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               border: Border.all(
@@ -920,14 +1075,23 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Log Splitter',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'Log Splitter',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
                     // APP 4: Zorkut envia mensagens globais e futuramente individuais em campos //
                     GestureDetector(
                       onTap: () {
@@ -941,7 +1105,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               border: Border.all(
@@ -957,14 +1121,23 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Zorkut Chat',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'Zorkut Chat',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
                     // APP 5: Maps que mostra a posição dos jogadores e futuramente claims //
                     GestureDetector(
                       onTap: () {
@@ -978,7 +1151,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               border: Border.all(
@@ -994,9 +1167,65 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Sistema de Monitoramento por Satélite (Maps)',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'Maps',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // APP 6: NetConfig (Configurações de Rede e Gerador de Proxy) //
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _appsAbertos['netconfig'] = true;
+                          _appsMinimizados['netconfig'] = false;
+                        });
+                        _trazerParaFrente('netconfig');
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              border: Border.all(
+                                color: const Color(0xFF38BDF8)
+                                    .withValues(alpha: 0.5),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.settings_ethernet,
+                              color: Color(0xFF38BDF8),
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const SizedBox(
+                            width:
+                                72, // Trava a largura do texto igual à do ícone
+                            child: Text(
+                              'NetConfig',
+                              textAlign: TextAlign.center, // Centraliza o texto
+                              maxLines: 2, // Permite quebrar em até 2 linhas
+                              overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1086,6 +1315,21 @@ class _DashboardPageState extends State<DashboardPage> {
                   },
                 ),
               );
+            } else if (id == 'netconfig') {
+              return _construirJanela(
+                id: 'netconfig',
+                titulo: 'Propriedades de Rede TCP/IP (NetConfig)',
+                corTema: const Color(0xFF38BDF8),
+                larguraJanela: 520,
+                alturaJanela: 520,
+                conteudo: NetConfigApp(
+                  ipInicial: ipProxy,
+                  portaInicial: portaProxy,
+                  tokenInicial: token,
+                  conectado: _conectado,
+                  onSalvarEConectar: _salvarEReconectarProxy,
+                ),
+              );
             }
 
             return const SizedBox.shrink();
@@ -1097,8 +1341,11 @@ class _DashboardPageState extends State<DashboardPage> {
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.all(5),
+              padding: const EdgeInsets.all(
+                5,
+              ), // Adiciona preenchimento interno ao container
               decoration: BoxDecoration(
+                // Preto com 75% de opacidade (Efeito translúcido)
                 color: Colors.black.withValues(alpha: 0.75),
                 border: Border.all(
                   color: const Color(0xFF39FF14).withValues(alpha: 0.3),
@@ -1191,6 +1438,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(width: 10),
 
                   // MONITOR DE LOGS BRUTOS
+                  // EXEMPLO: Botão da Barra de Tarefas (Monitor)
                   Tooltip(
                     message: 'Monitor',
                     child: InkWell(
@@ -1211,11 +1459,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         width: 38,
                         height: 36,
                         decoration: BoxDecoration(
+                          // Fundo acende levemente se o app estiver aberto (mesmo minimizado)
                           color: _appsAbertos['monitor'] == true
                               ? const Color(0xFF39FF14).withValues(alpha: 0.15)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
+                            // Borda brilhante se aberto, discreta se fechado
                             color: _appsAbertos['monitor'] == true
                                 ? const Color(0xFF39FF14)
                                 : Colors.white24,
@@ -1357,6 +1607,49 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  // NETCONFIG
+                  Tooltip(
+                    message: 'NetConfig',
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          if (_appsAbertos['netconfig'] == true &&
+                              _appsMinimizados['netconfig'] == false) {
+                            _appsMinimizados['netconfig'] = true;
+                          } else {
+                            _appsAbertos['netconfig'] = true;
+                            _appsMinimizados['netconfig'] = false;
+                            _trazerParaFrente('netconfig');
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        width: 38,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: _appsAbertos['netconfig'] == true
+                              ? const Color(0xFF38BDF8).withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _appsAbertos['netconfig'] == true
+                                ? const Color(0xFF38BDF8)
+                                : Colors.white24,
+                            width: _appsAbertos['netconfig'] == true
+                                ? 1.2
+                                : 0.8,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.settings_ethernet,
+                          color: Color(0xFF38BDF8),
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(width: 10),
 
@@ -1442,5 +1735,6 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
   //== FIM MODULO 3.2: CONSTRUÇÃO DA INTERFACE PRINCIPAL ==//
 }

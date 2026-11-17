@@ -1,78 +1,75 @@
 # sd_dos_dart
-Lightweight retro-OS visual server manager for 7 Days to Die with automated PVP/PVE zone control, live player radar, and integrated chat (Flutter + Python).
+Lightweight retro-OS visual server manager for 7 Days to Die with automated PVP/PVE zone control, live player radar, built-in proxy generator, and integrated chat (Flutter + Python).
 
 ![Interface](./sd-dos_v1_0.png)
 
-[🇧🇷 Leia em Português](README_pt-BR.md)
+[🇧🇷 Leia em Português](README_pt-br.md)
 
-# SD-DOS Server Manager (v1.0)
+# SD-DOS Server Manager (v1.1)
 
-Lightweight visual manager for **7 Days to Die** dedicated servers, inspired by classic operating systems. Built to provide automated PVP/PVE border control, log monitoring, and a tactical player radar without heavy configurations.
+Lightweight visual manager for **7 Days to Die** dedicated servers, inspired by classic operating systems. Built to provide automated PVP/PVE border control, log monitoring, a tactical player radar, and zero-code network setup.
 
-# Project Objective
+## What's New in v1.1
+* **NetConfig App (TCP/IP & Script Generator):** Configure Proxy IP, port, and secret token directly from the UI with local persistence (`shared_preferences`) and streamer-safe visibility toggles (`obscureText`).
+* **Built-in `.py` & `.bat` Generator:** Generate ready-to-run Python WebSocket bridge scripts and Windows `.bat` launchers (with automatic `%~dp0` relative path support) right from the interface.
+* **Hardened WebSocket Connection:** Added connection generation IDs, UI button debounce, and WebSocket `ping_interval` / `ping_timeout` to eliminate ghost connections, duplicate sessions, and rapid-click reconnection loops.
+* **High-Performance Log Monitors:** Implemented a 1,000-line circular memory buffer and `SelectionArea` rendering in **Monitor** and **LogSplit** to prevent UI freezes during long server sessions.
+* **Windows Executable (`.exe`):** First standalone Windows Release build available without requiring manual source-code edits.
 
-To create a visually user-friendly environment for the secure management of game servers and file editors. Lightweight and with multiple tools. In its final version, it will run on computers, browsers, and Android phones (yes, you'll be able to use that idle processor from your old phone stored in a drawer).
-
-> **Note (v1.0):** The current user interface and internal variables are in Portuguese. Multi-language localization support is planned for upcoming releases.
-
-## v1.0 Features
+## Core Features
+* **NetConfig:** Visual network configuration, persistent credentials, and one-click `.py` / `.bat` proxy script export.
 * **Maps:** Interactive map with zoom, configurable PVE zone overlays, and live player tracking.
 * **PVP / PVE Automation:** Automatic private warnings sent to players crossing borders between safe and hostile biomes.
 * **Zorkut Chat:** Global chat interface compatible with both vanilla console commands (`say`) and Prisma Core (`sayadmin`).
-* **Log Splitter & Monitor:** Smart server event filtering (`[LP]`, `[CHAT]`, `[CMD]`, `[PC]`) with automatic scroll lock.
+* **Log Splitter & Monitor:** Smart server event filtering (`[LP]`, `[CHAT]`, `[CMD]`, `[PC]`) with automatic scroll lock and memory protection.
 * **Prompt (CMD):** Built-in terminal for quick Telnet administrative commands.
 
-## Features planned for the next version
-* Websocket script generator already configured through a new app.
-* IP, port, and credential configuration via interface, without the need for manual file editing.
-* First executable (.exe) for Windows.
+## Project Objective
+
+To create a visually user-friendly environment for the secure management of game servers and file editors. Lightweight and with multiple tools. In its final version, it will run on computers, browsers, and Android phones (yes, you'll be able to use that idle processor from your old phone stored in a drawer).
+
+> **Note (v1.1):** The current user interface and internal variables are in Portuguese. Multi-language localization support is planned for upcoming releases.
 
 ## Tech Stack
-* **Frontend / UI:** Flutter (Desktop)
-* **Backend / Telnet Bridge:** Python (WebSockets)
-
-## Setup & Configuration (v1.0)
-
-Before running the manager, manually fill in your server credentials and network parameters in the project files. The manager was developed to currently use a Python script that maintains the connection to the server's telnet via websockets. Use a .bat file for one-click execution on Windows.
+* **Frontend / UI:** Flutter (Windows Desktop / Web)
+* **Backend / Telnet Bridge:** Python (`websockets`)
 
 ## Execution Logic
 
-* The script can run directly on the server or on another computer. It offers stability and minimal processing cost because it doesn't perform complex checks and calculations, and allows for the implementation of security filters.
-* The manager connects to the websocket from any computer without needing to connect directly to the server, and allows multiple stable connections even when performing complex checks, processing, and calculations.
-* In practice, you can run everything on the same computer, or have a SERVER, SCRIPT, and multiple MANAGERS in different locations.
-* In the current version, multiple connections to telnet using the manager will overload telnet due to the automatic application of pre-configured handling rules. However, you can use any websocket connection tool to read logins and send commands using the same connection type and credentials.
+* The Python proxy script can run directly on the game server or on another machine. It maintains low CPU overhead and isolates Telnet credentials from client interfaces.
+* Multiple manager interfaces can connect simultaneously to the same WebSocket proxy without overloading the game's Telnet port.
+* You can run everything on the same PC, or host the **Game Server**, **Python Proxy**, and **Manager Interfaces** on separate machines.
 
-### 1. Python WebSocket Bridge (`WebsocketsExample.py`)
-Install the required dependency:
+## Quick Setup & Configuration (v1.1)
+
+You no longer need to manually edit source code files to configure your connection.
+
+### 1. Launch the Manager
+* **Windows Executable:** Download the latest release `.zip`, extract the full folder (keep `.exe`, `.dll`, and `data/` together), and run `sd_dos_dart.exe`.
+* **From Source:** Run `flutter pub get` and `flutter run -d windows` (or `-d chrome`).
+* On first launch, **NetConfig** opens automatically when no saved credentials are found.
+
+### 2. Generate the Proxy Script (`.py` & `.bat`)
+Install the Python WebSocket dependency on the machine that will host the bridge:
 ```bash
 pip install websockets
 ```
 
-Open the Python script and replace the placeholders (`<...>`) with your server details:
-* **Game Telnet Settings:**
-  * `SDTD_HOST`: Your 7 Days to Die server IP address (e.g., `"127.0.0.1"`).
-  * `SDTD_PORT`: Your server Telnet port (default is `8081`, integer without quotes).
-  * `SDTD_PASSWORD`: Your `serverconfig.xml` Telnet password.
-* **WebSocket Bridge Settings:**
-  * `WS_HOST`: Use `"0.0.0.0"` to accept external connections, or `"127.0.0.1"` for local access only.
-  * `WS_PORT`: Port used by the Flutter interface to connect (e.g., `8082`, integer without quotes).
-  * `WS_TOKEN`: A custom secret token/password to authenticate your client interfaces.
+Inside **NetConfig**, switch to tab **2. Gerar Script (.py / .bat)**:
+1. **7D2D Telnet Settings:** Enter your server IP (`127.0.0.1` if local), `TelnetPort` (default `8081`), and `TelnetPassword` from `serverconfig.xml`.
+2. **WebSocket Bridge Settings:** Set `WS_HOST` (`0.0.0.0` for external access or `127.0.0.1` for local), `WS_PORT` (default `8082`), and create a strong `WS_TOKEN`.
+3. **Export Files:** Click **BAIXAR SCRIPT (.PY)** and **BAIXAR ATALHO (.BAT)** to save both files in the same folder, then double-click the `.bat` file to start the bridge.
 
-### 2. Windows Startup Script (`IniciarWebsocketsExample.bat`)
-Edit the `.bat` launcher to point to your Python script directory:
-* Change the drive letter (e.g., `I:` or `C:`) and replace `<CAMINHO_DO_SEU_SCRIPT>` with the folder path.
-* Replace `<NOME_DO_SEU_SCRIPT>.py` with the exact name of your Python file.
+### 3. Connect the Interface
+Inside **NetConfig**, go to tab **1. Conexão do Painel**:
+* Enter the Proxy IP, Port, and the `WS_TOKEN` you created, then click **SALVAR E CONECTAR AO PROXY**.
+* Credentials are stored locally on your device for automatic reconnection on future launches.
 
-### 3. Flutter Interface (`lib/main.dart`)
-Open `lib/main.dart` and update the connection and zone parameters to match your Python bridge:
-* **WebSocket Connection URL:** Update the IP, port, and token in the connection string (`ws://<WS_HOST>:<WS_PORT>/?token=<WS_TOKEN>`).
-* **PVE Zones (`retangulosPve`):** Adjust the `[minX, maxX, minZ, maxZ]` coordinate rectangles to match the safe zones of your map. By default, the Navezgane Pine Forest from v3.4.0(b10) is tracked. Optimize the rectangles to a minimum quantity to avoid overloading the checks.
-* **Custom Map (Optional):** Load any square map image (`.png` / `.webp`) directly from the **Maps** top toolbar by entering its file path and world size (e.g., `6144`, `8192`, `10240`, `16384`). By default, the assets/maps/Navezgane/images/Navezgane.webp file is loaded.
+## Advanced Customization (Source Code)
 
-### 4. Bot Admin
-* Search and replace the term BotAdmin with the name of your admin bot. This is being designed for future implementations. If you don't change this, BotAdmin will still appear in messages and alerts.
-* Sends private messages to players when they switch between PvP and PvE areas.
-* Sends global admin messages (permission 99) in Prisma Core mode via the Zorkut application. Do not apply permission 99 to players without reviewing the server configuration files. Admin permissions are applied by default in the file for levels equal to or less than 100. 0 (zero) is the maximum level. Attempting to use this command applying the required authorization level to everyone will give admin command permissions to everyone. DO NOT DO THIS! Until you set up a new permissions system, use the non-custom Vanilla selector (by clicking the button) for global messages.
+* **PVE Zones (`retangulosPve` in `lib/main.dart`):** Adjust the `[minX, maxX, minZ, maxZ]` coordinate rectangles to match your map's safe zones (Navezgane Pine Forest is configured by default).
+* **Custom Map (Optional):** Load any square map image (`.png` / `.webp`) directly from the **Maps** top toolbar by entering its file path and world size (`6144`, `8192`, `10240`, `16384`).
+* **Admin Permissions Warning:** Global messages in Prisma Core mode currently send `sayadmin` with permission level `99`. Do not assign permission level `99` to regular players without reviewing your server admin configuration (`0` is highest admin, `<= 100` often grants admin commands by default). Use the **Vanilla** toggle button in Zorkut for standard `say` broadcasts if unsure.
 
 ## License
 This project is released under **The Unlicense** (Public Domain). You are free to copy, modify, publish, use, or distribute this software for any purpose without attribution.
