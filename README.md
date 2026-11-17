@@ -3,7 +3,7 @@ Lightweight retro-OS visual server manager for 7 Days to Die with automated PVP/
 
 ![Interface](./sd-dos_v1_0.png)
 
-[🇧🇷 Leia em Português](README_pt-BR.md)
+[🇧🇷 Leia em Português](README_pt-br.md)
 
 # SD-DOS Server Manager (v1.0)
 
