@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 class NetConfigApp extends StatefulWidget {
   final String ipInicial;
@@ -81,7 +82,6 @@ class _NetConfigAppState extends State<NetConfigApp> {
     _portaProxyController = TextEditingController(text: widget.portaInicial);
     _tokenProxyController = TextEditingController(text: widget.tokenInicial);
 
-    // Espelha os dados iniciais na aba do gerador para facilitar
     _wsPortController.text = widget.portaInicial.isNotEmpty
         ? widget.portaInicial
         : "8082";
@@ -113,17 +113,14 @@ class _NetConfigAppState extends State<NetConfigApp> {
 
   // Salva no SharedPreferences via main.dart e conecta
   Future<void> _salvarConfiguracaoPainel() async {
-    if (_salvando) return; // Ignora cliques extras enquanto processa
+    if (_salvando) return;
 
     final ip = _ipProxyController.text.trim();
     final porta = _portaProxyController.text.trim();
     final token = _tokenProxyController.text.trim();
 
     if (ip.isEmpty || porta.isEmpty || token.isEmpty) {
-      _exibirFeedback(
-        "Preencha IP, Porta e Token antes de conectar.",
-        erro: true,
-      );
+      _exibirFeedback(tr('netconfig.feedback_fill_panel'), erro: true);
       return;
     }
 
@@ -135,9 +132,8 @@ class _NetConfigAppState extends State<NetConfigApp> {
         novaPorta: porta,
         novoToken: token,
       );
-      _exibirFeedback("Configurações salvas! Tentando conectar ao Proxy...");
+      _exibirFeedback(tr('netconfig.feedback_connecting'));
     } finally {
-      // Libera o botão novamente após 800ms (debounce visual)
       await Future.delayed(const Duration(milliseconds: 800));
       if (mounted) {
         setState(() => _salvando = false);
@@ -146,7 +142,6 @@ class _NetConfigAppState extends State<NetConfigApp> {
   }
 
   // Gera e salva o arquivo Python (.py)
-  // Gera e salva o arquivo Python (.py) baseado no script oficial validado
   Future<void> _gerarArquivoPython() async {
     final sdtdHost = _sdtdHostController.text.trim();
     final sdtdPort = int.tryParse(_sdtdPortController.text.trim()) ?? 8081;
@@ -159,10 +154,7 @@ class _NetConfigAppState extends State<NetConfigApp> {
         : _nomeArquivoPyController.text.trim();
 
     if (sdtdHost.isEmpty || sdtdPass.isEmpty || wsToken.isEmpty) {
-      _exibirFeedback(
-        "Preencha Host, Senha Telnet e Token WS para gerar o script.",
-        erro: true,
-      );
+      _exibirFeedback(tr('netconfig.feedback_fill_script'), erro: true);
       return;
     }
 
@@ -171,70 +163,60 @@ class _NetConfigAppState extends State<NetConfigApp> {
 import websockets
 from urllib.parse import urlparse, parse_qs
 
-# --- CONFIGURAÇÕES DO JOGO (TELNET) ---
+# --- 7 DAYS TO DIE (TELNET) ---
 SDTD_HOST = "$sdtdHost"
 SDTD_PORT = $sdtdPort
 SDTD_PASSWORD = "$sdtdPass"
 
-# --- CONFIGURAÇÕES DO SEU SERVIDOR WEBSOCKET (INTERFACE) ---
+# --- WEBSOCKET SERVER (UI BRIDGE) ---
 WS_HOST = "$wsHost"
 WS_PORT = $wsPort
 WS_TOKEN = "$wsToken"
 
-# Variáveis globais para armazenar os fluxos da conexão com o jogo
 jogo_reader = None
 jogo_writer = None
-
-# Lista de todas as interfaces (celulares, painéis) conectadas simultaneamente
 interfaces_conectadas = set()
 
 async def conectar_ao_jogo():
-    """Tenta conectar ao Telnet do jogo e mantém a conexão viva, tratando o buffer de texto corretamente."""
     global jogo_reader, jogo_writer
     
     while True:
         try:
-            print(f"[7DTD] Tentando conectar ao jogo em {SDTD_HOST}:{SDTD_PORT}...")
+            print(f"${tr('proxy_script.py_connecting')}")
             jogo_reader, jogo_writer = await asyncio.open_connection(SDTD_HOST, SDTD_PORT)
             
-            # Autenticação proativa
             jogo_writer.write((SDTD_PASSWORD + "\\r\\n").encode('utf-8'))
             await jogo_writer.drain()
             await asyncio.sleep(0.6)
             
-            # Limpa o buffer de boas-vindas inicial do Telnet
             if not jogo_reader.at_eof():
                 await jogo_reader.read(4096)
                 
-            # Ativa o streaming de logs em tempo real
             jogo_writer.write("logson\\r\\n".encode('utf-8'))
             await jogo_writer.drain()
-            print("[7DTD] Conectado com sucesso e streaming de logs ativado!")
+            print("${tr('proxy_script.py_connected')}")
             
             buffer_residual = ""
             
-            # Loop de leitura robusto para capturar linhas completas
             while True:
                 dados = await jogo_reader.read(4096)
                 if not dados:
-                    break # Conexão caiu
+                    break
                 
                 buffer_residual += dados.decode('utf-8', errors='ignore')
                 linhas = buffer_residual.split("\\n")
-                
                 buffer_residual = linhas.pop()
                 
                 for linha_completa in linhas:
                     linha_limpa = linha_completa.strip()
                     if linha_limpa and interfaces_conectadas:
-                        # Transmite em paralelo para todos os ADMs conectados do mundo
                         await asyncio.gather(
                             *[asyncio.create_task(cliente.send(linha_limpa)) for cliente in interfaces_conectadas],
                             return_exceptions=True
                         )
                     
         except Exception as e:
-            print(f"[⚠️ ERRO 7DTD] Conexão falhou ou caiu: {e}. Tentando novamente em 5 segundos...")
+            print(f"${tr('proxy_script.py_conn_error')}")
             
         if jogo_writer:
             jogo_writer.close()
@@ -245,44 +227,39 @@ async def conectar_ao_jogo():
         await asyncio.sleep(5)
 
 async def gerenciar_interface(websocket):
-    """Gerencia uma nova interface que passou na validação de segurança (Compatível com websockets v13+)."""
     global jogo_writer
     
-    # Acessa os parâmetros da URL de forma segura na versão nova da biblioteca
     url_info = urlparse(websocket.request.path)
     parametros = parse_qs(url_info.query)
     
-    # Extrai a lista do token e pega o primeiro item dela
     lista_token = parametros.get("token", [None])
     token_recebido = lista_token[0]
     
-    # Se o token for incorreto ou ausente, rejeita a conexão na hora
     if token_recebido != WS_TOKEN:
-        print(f"[🔒 BLOQUEADO] Tentativa de conexão recusada. Token inválido ou ausente.")
+        print("${tr('proxy_script.py_blocked')}")
         await websocket.close(code=4001, reason="Authentication failed: Invalid Token")
         return
 
-    # Adiciona na lista de administradores ativos
     interfaces_conectadas.add(websocket)
-    print(f"[WS] Nova interface AUTENTICADA conectada! Total de dispositivos: {len(interfaces_conectadas)}")
+    print(f"${tr('proxy_script.py_client_connected')}")
     
     try:
         async for mensagem in websocket:
             comando = mensagem.strip()
             
             if jogo_writer and not jogo_writer.is_closing():
-                print(f"[WS -> JOGO] Comando injetado por ADM autenticado: {comando}")
+                print(f"${tr('proxy_script.py_cmd_injected')}")
                 jogo_writer.write((comando + "\\r\\n").encode('utf-8'))
                 await jogo_writer.drain()
             else:
-                await websocket.send("Erro: O script principal não está conectado ao servidor do jogo no momento.")
+                await websocket.send("${tr('proxy_script.py_err_not_connected')}")
                 
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
         if websocket in interfaces_conectadas:
             interfaces_conectadas.remove(websocket)
-        print(f"[WS] Interface desconectada. Total restante: {len(interfaces_conectadas)}")
+        print(f"${tr('proxy_script.py_client_disconnected')}")
 
 async def main():
     server = await websockets.serve(
@@ -292,7 +269,7 @@ async def main():
         ping_interval=10,
         ping_timeout=5,
     )
-    print(f"[WS Server] Ouvindo conexões de interfaces na porta {WS_PORT} com segurança ativa...")
+    print(f"${tr('proxy_script.py_listening')}")
     
     asyncio.create_task(conectar_ao_jogo())
     await server.wait_closed()
@@ -301,75 +278,63 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\\n[Proxy] Finalizado pelo administrador.")
+        print("\\n${tr('proxy_script.py_stopped')}")
 ''';
-
     final uriDestino = await FilePicker.saveFile(
-      dialogTitle: 'Salvar Script Python do Proxy',
+      dialogTitle: tr('netconfig.dialog_save_py'),
       fileName: nomeArquivo.endsWith('.py') ? nomeArquivo : '$nomeArquivo.py',
       bytes: utf8.encode(conteudoPy),
     );
-
     if (uriDestino != null) {
-      _exibirFeedback("Script Python salvo com sucesso!");
+      _exibirFeedback(tr('netconfig.feedback_py_saved'));
     }
   }
 
   // Gera e salva o inicializador Windows (.bat)
-  // Gera e salva o inicializador Windows (.bat)
-  Future<void> _gerarArquivoBat() async {
+  Future _gerarArquivoBat() async {
     final nomePy = _nomeArquivoPyController.text.trim().isEmpty
         ? "WebsocketsExample.py"
         : _nomeArquivoPyController.text.trim();
     final nomePyFinal = nomePy.endsWith('.py') ? nomePy : '$nomePy.py';
-
     String blocoDiretorio = "";
-
     if (_usarCaminhoManualBat) {
       final pasta = _caminhoPastaBatController.text.trim();
       if (pasta.isEmpty) {
         _exibirFeedback(
-          "Informe o caminho da pasta ou desmarque o caminho manual.",
+          tr('netconfig.feedback_bat_folder_missing'),
           erro: true,
         );
         return;
       }
-
-      // Extrai a letra do drive (ex: "C:" ou "D:") se o caminho começar com ela
       String comandoDrive = "";
       if (pasta.length >= 2 && pasta[1] == ':') {
         comandoDrive = "${pasta.substring(0, 2)}\n";
       }
       blocoDiretorio = '${comandoDrive}cd /d "$pasta"';
     } else {
-      // %~dp0 aponta automaticamente para a pasta onde o arquivo .bat está localizado
       blocoDiretorio = 'cd /d "%~dp0"';
     }
-
     final conteudoBat =
         '''@echo off
 title SD-DOS WebSocket Proxy Bridge
 color 0A
 $blocoDiretorio
-echo Iniciando ponte WebSocket para 7 Days to Die...
+echo ${tr('proxy_script.bat_starting')}
 python "$nomePyFinal"
 pause
 ''';
-
     final uriDestino = await FilePicker.saveFile(
-      dialogTitle: 'Salvar Inicializador Windows (.bat)',
+      dialogTitle: tr('netconfig.dialog_save_bat'),
       fileName: 'IniciarProxy_SDDOS.bat',
       bytes: utf8.encode(conteudoBat),
     );
-
     if (uriDestino != null) {
-      _exibirFeedback("Arquivo .BAT salvo com sucesso!");
+      _exibirFeedback(tr('netconfig.feedback_bat_saved'));
     }
   }
 
   Widget _buildIconeAjuda({required String titulo, required String mensagem}) {
     return Tooltip(
-      // No Desktop, mostra a dica rápida ao passar o mouse
       message: mensagem,
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -381,7 +346,6 @@ pause
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        // No Mobile (ou ao clicar no PC), abre uma janela confortável para ler tudo
         onTap: () {
           showDialog(
             context: context,
@@ -398,7 +362,7 @@ pause
                   Expanded(
                     child: Text(
                       titulo,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: _corDestaque,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -419,8 +383,8 @@ pause
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    "ENTENDI",
-                    style: TextStyle(
+                    tr('netconfig.btn_understood'),
+                    style: const TextStyle(
                       color: _corDestaque,
                       fontWeight: FontWeight.bold,
                     ),
@@ -462,13 +426,13 @@ pause
                 _buildBotaoAba(
                   indice: 0,
                   icone: Icons.settings_ethernet,
-                  titulo: "1. Conexão do Painel",
+                  titulo: tr('netconfig.tab_connection'),
                 ),
                 const SizedBox(width: 8),
                 _buildBotaoAba(
                   indice: 1,
                   icone: Icons.build_circle_outlined,
-                  titulo: "2. Gerar Script (.py / .bat)",
+                  titulo: tr('netconfig.tab_generator'),
                 ),
                 const Spacer(),
                 // Indicador de status da rede
@@ -490,7 +454,9 @@ pause
                     ),
                   ),
                   child: Text(
-                    widget.conectado ? "ONLINE" : "OFFLINE",
+                    widget.conectado
+                        ? tr('netconfig.status_online')
+                        : tr('netconfig.status_offline'),
                     style: TextStyle(
                       color: widget.conectado
                           ? Colors.greenAccent
@@ -541,26 +507,19 @@ pause
       children: [
         Row(
           children: [
-            const Text(
-              "PARÂMETROS DE REDE TCP/IP (PROXY WEBSOCKET)",
-              style: TextStyle(
+            Text(
+              tr('netconfig.sec_panel_title'),
+              style: const TextStyle(
                 color: _corDestaque,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(width: 4),
             _buildIconeAjuda(
-              titulo: "Conectar interface ao Proxy Websocket",
-              mensagem:
-                  "• Digite o IP onde esta o Script Proxy Websocket.\n"
-                  "• Pode não ser o mesmo IP do servidor de jogo.\n"
-                  "• 127.0.0.1 se estiver no mesmo computador,\n"
-                  "• 192.168.(...) em rede local fixo no roteador,\n"
-                  "• IP externo requer redirecionamento de porta.\n"
-                  "• Digite o porta configurada no Script Websocket.\n"
-                  "• Digite o token configurado no Script Websocket.",
+              titulo: tr('netconfig.help_panel_title'),
+              mensagem: tr('netconfig.help_panel_body'),
             ),
           ],
         ),
@@ -571,7 +530,7 @@ pause
               flex: 3,
               child: _buildCampoTexto(
                 controller: _ipProxyController,
-                label: "IP do Proxy (Ex: 127.0.0.1)",
+                label: tr('netconfig.label_proxy_ip'),
                 oculto: _ocultarIpProxy,
                 onAlternarVisibilidade: () =>
                     setState(() => _ocultarIpProxy = !_ocultarIpProxy),
@@ -582,7 +541,7 @@ pause
               flex: 1,
               child: _buildCampoTexto(
                 controller: _portaProxyController,
-                label: "Porta WS",
+                label: tr('netconfig.label_ws_port'),
                 tecladoNumerico: true,
               ),
             ),
@@ -591,7 +550,7 @@ pause
         const SizedBox(height: 12),
         _buildCampoTexto(
           controller: _tokenProxyController,
-          label: "Token Secreto de Acesso (WS_TOKEN)",
+          label: tr('netconfig.label_ws_token'),
           oculto: _ocultarTokenProxy,
           onAlternarVisibilidade: () =>
               setState(() => _ocultarTokenProxy = !_ocultarTokenProxy),
@@ -620,7 +579,9 @@ pause
                   )
                 : const Icon(Icons.save_alt, size: 16),
             label: Text(
-              _salvando ? "CONECTANDO..." : "SALVAR E CONECTAR AO PROXY",
+              _salvando
+                  ? tr('netconfig.btn_connecting')
+                  : tr('netconfig.btn_save_connect'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
             ),
           ),
@@ -636,9 +597,9 @@ pause
       children: [
         Row(
           children: [
-            const Text(
-              "1. CONFIGURAÇÃO DO TELNET (7 DAYS TO DIE)",
-              style: TextStyle(
+            Text(
+              tr('netconfig.sec_telnet_title'),
+              style: const TextStyle(
                 color: _corDestaque,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -646,30 +607,19 @@ pause
             ),
             const SizedBox(width: 6),
             _buildIconeAjuda(
-              titulo: "Conectar o script ao servidor de jogo",
-              mensagem:
-                  "• Digite o IP do servidor que o script deve se conectar.\n"
-                  "• 127.0.0.1 (localhost) se estiver no mesmo computador,\n"
-                  "• 192.168.(...) em rede local fixe pelo roteador,\n"
-                  "• IP externo requer redirecionamento de porta.\n"
-                  "• Verifique serverconfig.xml ou sdtdserver.xml no servidor.\n"
-                  "• Certifique-se de que TelnetEnabled está como true.\n"
-                  "• Configure TelnetPort(Porta) e TelnetPassword(Senha).\n"
-                  "• Senha longa com letras, números e caracteres especiais.\n"
-                  "• Não é a senha do painel web, é a senha do Telnet.",
+              titulo: tr('netconfig.help_telnet_title'),
+              mensagem: tr('netconfig.help_telnet_body'),
             ),
           ],
         ),
-
         const SizedBox(height: 8),
-
         Row(
           children: [
             Expanded(
               flex: 3,
               child: _buildCampoTexto(
                 controller: _sdtdHostController,
-                label: "IP do Servidor 7D2D",
+                label: tr('netconfig.label_sdtd_ip'),
                 oculto: _ocultarSdtdHost,
                 onAlternarVisibilidade: () =>
                     setState(() => _ocultarSdtdHost = !_ocultarSdtdHost),
@@ -680,7 +630,7 @@ pause
               flex: 1,
               child: _buildCampoTexto(
                 controller: _sdtdPortController,
-                label: "Porta Telnet",
+                label: tr('netconfig.label_telnet_port'),
                 tecladoNumerico: true,
               ),
             ),
@@ -689,7 +639,7 @@ pause
         const SizedBox(height: 8),
         _buildCampoTexto(
           controller: _sdtdPassController,
-          label: "Senha Telnet (serverconfig.xml ou sdtdserver.xml)",
+          label: tr('netconfig.label_telnet_pass'),
           oculto: _ocultarSdtdPass,
           onAlternarVisibilidade: () =>
               setState(() => _ocultarSdtdPass = !_ocultarSdtdPass),
@@ -697,9 +647,9 @@ pause
         const SizedBox(height: 14),
         Row(
           children: [
-            const Text(
-              "2. CONFIGURAÇÃO DA PONTE WEBSOCKET",
-              style: TextStyle(
+            Text(
+              tr('netconfig.sec_ws_title'),
+              style: const TextStyle(
                 color: _corDestaque,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -707,18 +657,8 @@ pause
             ),
             const SizedBox(width: 6),
             _buildIconeAjuda(
-              titulo: "Configuração da Ponte Websocket",
-              mensagem:
-                  "• IP que o SCRIPT deve autorizar (não é o servidor).\n"
-                  "• 127.0.0.1 (localhost) se estiver no mesmo computador,\n"
-                  "• IP fixo local ou externo se quiser acesso restrito,\n"
-                  "• 0.0.0.0 pra acessar de qualquer IP, interno ou externo.\n"
-                  "• IP externo requer redirecionamento de porta.\n"
-                  "• Não é o mesmo IP que você digita na interface.\n"
-                  "• Na interface vai apontar o IP do script.\n"
-                  "• Porta WS (ex: 8082), pode requerer redirecionamento.\n"
-                  "• Crie aqui um Token de autenticação para a conexão.\n"
-                  "• Senha longa com letras, números e caracteres especiais.",
+              titulo: tr('netconfig.help_ws_title'),
+              mensagem: tr('netconfig.help_ws_body'),
             ),
           ],
         ),
@@ -729,7 +669,7 @@ pause
               flex: 2,
               child: _buildCampoTexto(
                 controller: _wsHostController,
-                label: "Escutas autorizadas WS (0.0.0.0 ou 127.0.0.1 ou fixo)",
+                label: tr('netconfig.label_ws_listen'),
               ),
             ),
             const SizedBox(width: 8),
@@ -737,7 +677,7 @@ pause
               flex: 1,
               child: _buildCampoTexto(
                 controller: _wsPortController,
-                label: "Porta WS",
+                label: tr('netconfig.label_ws_port'),
                 tecladoNumerico: true,
               ),
             ),
@@ -746,7 +686,7 @@ pause
         const SizedBox(height: 8),
         _buildCampoTexto(
           controller: _wsTokenController,
-          label: "Crie um Token de Autenticação (WS_TOKEN)",
+          label: tr('netconfig.label_create_token'),
           oculto: _ocultarWsToken,
           onAlternarVisibilidade: () =>
               setState(() => _ocultarWsToken = !_ocultarWsToken),
@@ -754,9 +694,9 @@ pause
         const SizedBox(height: 14),
         Row(
           children: [
-            const Text(
-              "3. CONFIGURAÇÃO DO INICIALIZADOR (.BAT)",
-              style: TextStyle(
+            Text(
+              tr('netconfig.sec_bat_title'),
+              style: const TextStyle(
                 color: _corDestaque,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -764,24 +704,17 @@ pause
             ),
             const SizedBox(width: 6),
             _buildIconeAjuda(
-              titulo: "Gerar arquivo .BAT para iniciar o script",
-              mensagem:
-                  "• O arquivo .BAT é um atalho para iniciar o script Python.\n"
-                  "• Por padrão, ele procura o script na mesma pasta do .BAT.\n"
-                  "• Se o script estiver em outra pasta, marque a opção e informe o caminho.\n"
-                  "• O nome do arquivo Python deve corresponder ao que você salvou.\n"
-                  "• Exemplo de nome: WebsocketsExample.py\n"
-                  "• O .BAT facilita a execução sem precisar abrir o terminal.",
+              titulo: tr('netconfig.help_bat_title'),
+              mensagem: tr('netconfig.help_bat_body'),
             ),
           ],
         ),
         const SizedBox(height: 8),
         _buildCampoTexto(
           controller: _nomeArquivoPyController,
-          label: "Nome do arquivo Python (.py)",
+          label: tr('netconfig.label_py_filename'),
         ),
         const SizedBox(height: 6),
-
         // Seletor: Mesma pasta do script (padrão) vs Caminho manual
         InkWell(
           onTap: () =>
@@ -810,8 +743,8 @@ pause
                 Expanded(
                   child: Text(
                     _usarCaminhoManualBat
-                        ? "Só é necessário se o script python estiver em outra pasta"
-                        : "Definir pasta manualmente (Por padrão reconhece na mesma pasta)",
+                        ? tr('netconfig.checkbox_manual_folder_on')
+                        : tr('netconfig.checkbox_manual_folder_off'),
                     style: TextStyle(
                       color: _usarCaminhoManualBat
                           ? Colors.amberAccent
@@ -824,13 +757,11 @@ pause
             ),
           ),
         ),
-
-        // Exibe o campo de pasta apenas se o usuário marcar o caminho manual
         if (_usarCaminhoManualBat) ...[
           const SizedBox(height: 8),
           _buildCampoTexto(
             controller: _caminhoPastaBatController,
-            label: "Pasta onde o .py está salvo (Ex: C:\\SD-DOS-Proxy)",
+            label: tr('netconfig.label_py_folder'),
           ),
         ],
         const SizedBox(height: 16),
@@ -845,9 +776,12 @@ pause
                 ),
                 onPressed: _gerarArquivoPython,
                 icon: const Icon(Icons.code, size: 16),
-                label: const Text(
-                  "BAIXAR SCRIPT (.PY)",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                label: Text(
+                  tr('netconfig.btn_download_py'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
                 ),
               ),
             ),
@@ -861,9 +795,12 @@ pause
                 ),
                 onPressed: _gerarArquivoBat,
                 icon: const Icon(Icons.play_arrow, size: 16),
-                label: const Text(
-                  "BAIXAR ATALHO (.BAT)",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                label: Text(
+                  tr('netconfig.btn_download_bat'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
                 ),
               ),
             ),
@@ -963,7 +900,9 @@ pause
                   color: _corDestaque.withValues(alpha: 0.7),
                   size: 16,
                 ),
-                tooltip: oculto ? 'Mostrar valor' : 'Ocultar valor',
+                tooltip: oculto
+                    ? tr('netconfig.tooltip_show')
+                    : tr('netconfig.tooltip_hide'),
                 onPressed: onAlternarVisibilidade,
               )
             : null,

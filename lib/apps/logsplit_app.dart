@@ -1,6 +1,7 @@
 // lib/apps/logsplit_app.dart
 
 import 'package:flutter/material.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 import '../models/log_token.dart';
 
@@ -51,7 +52,6 @@ class _LogSplitAppState extends State<LogSplitApp> {
     super.didUpdateWidget(oldWidget);
     final totalAtual = widget.logsSplit.length;
 
-    // Se a lista foi limpa, reseta os contadores e destrava o scroll
     if (totalAtual == 0) {
       _totalLogsAnterior = 0;
       if (_novosLogsNaoLidos > 0 || !_autoScroll) {
@@ -137,7 +137,9 @@ class _LogSplitAppState extends State<LogSplitApp> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _autoScroll ? "Auto-Scroll: ON" : "Rolagem Pausada",
+                        _autoScroll
+                            ? tr('logs_common.autoscroll_on')
+                            : tr('logs_common.scroll_paused'),
                         style: TextStyle(
                           color: _autoScroll
                               ? const Color(0xFF39FF14)
@@ -151,17 +153,17 @@ class _LogSplitAppState extends State<LogSplitApp> {
                 ),
                 InkWell(
                   onTap: () => widget.onLimparTela(),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.cleaning_services,
                         color: Colors.amberAccent,
                         size: 12,
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        "Limpar Tela",
-                        style: TextStyle(
+                        tr('logs_common.clear_screen'),
+                        style: const TextStyle(
                           color: Colors.amberAccent,
                           fontSize: 10,
                         ),
@@ -172,7 +174,6 @@ class _LogSplitAppState extends State<LogSplitApp> {
               ],
             ),
           ),
-          // Lista renderizando os atributos do LogToken
           // Lista renderizando os atributos do LogToken com SelectionArea único
           Expanded(
             child: Padding(
@@ -190,12 +191,10 @@ class _LogSplitAppState extends State<LogSplitApp> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Ícone do token
                           Padding(
                             padding: const EdgeInsets.only(top: 1, right: 6),
                             child: Icon(log.icone, color: log.corTag, size: 13),
                           ),
-                          // Tag + Mensagem limpa leve
                           Expanded(
                             child: Text.rich(
                               TextSpan(

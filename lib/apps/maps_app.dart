@@ -3,6 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 import '../models/jogador_status.dart';
 
@@ -42,13 +43,11 @@ class _MapsAppState extends State<MapsApp> {
     _tamanhoMundoAtual = widget.tamanhoMundoInicial;
   }
 
-  // Converte coordenada X do 7D2D (-metade até +metade) para pixel na tela (0 até tamanhoBox)
   double _converterXParaPixel(double xJogo, double tamanhoBox) {
     final metade = _tamanhoMundoAtual / 2.0;
     return ((xJogo + metade) / _tamanhoMundoAtual) * tamanhoBox;
   }
 
-  // Converte coordenada Z do 7D2D (+metade no topo até -metade embaixo) para pixel Y na tela
   double _converterZParaPixel(double zJogo, double tamanhoBox) {
     final metade = _tamanhoMundoAtual / 2.0;
     return ((metade - zJogo) / _tamanhoMundoAtual) * tamanhoBox;
@@ -70,9 +69,9 @@ class _MapsAppState extends State<MapsApp> {
           borderRadius: BorderRadius.circular(8),
           side: const BorderSide(color: _corDestaque, width: 1),
         ),
-        title: const Text(
-          "CARREGAR MAPA CUSTOMIZADO",
-          style: TextStyle(
+        title: Text(
+          tr('maps.dialog_title'),
+          style: const TextStyle(
             color: _corDestaque,
             fontSize: 13,
             fontWeight: FontWeight.bold,
@@ -85,7 +84,7 @@ class _MapsAppState extends State<MapsApp> {
               controller: pathController,
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
-                labelText: "Caminho do arquivo (.png / .webp)",
+                labelText: tr('maps.label_file_path'),
                 labelStyle: TextStyle(
                   color: _corDestaque.withValues(alpha: 0.7),
                 ),
@@ -102,7 +101,7 @@ class _MapsAppState extends State<MapsApp> {
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
-                labelText: "Tamanho do Mapa (Ex: 6144, 8192, 10240, 16384)",
+                labelText: tr('maps.label_map_size'),
                 labelStyle: TextStyle(
                   color: _corDestaque.withValues(alpha: 0.7),
                 ),
@@ -122,9 +121,9 @@ class _MapsAppState extends State<MapsApp> {
               });
               Navigator.pop(ctx);
             },
-            child: const Text(
-              "Restaurar Padrão",
-              style: TextStyle(color: Colors.amberAccent, fontSize: 11),
+            child: Text(
+              tr('maps.btn_restore_default'),
+              style: const TextStyle(color: Colors.amberAccent, fontSize: 11),
             ),
           ),
           ElevatedButton(
@@ -143,9 +142,9 @@ class _MapsAppState extends State<MapsApp> {
               });
               Navigator.pop(ctx);
             },
-            child: const Text(
-              "Aplicar",
-              style: TextStyle(
+            child: Text(
+              tr('maps.btn_apply'),
+              style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 11,
@@ -167,7 +166,7 @@ class _MapsAppState extends State<MapsApp> {
           Expanded(
             child: Column(
               children: [
-                // BARRA DE CAMADAS E CONTROLES DO MAPA (Extensível para botões futuros)
+                // BARRA DE CAMADAS E CONTROLES DO MAPA
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -186,7 +185,7 @@ class _MapsAppState extends State<MapsApp> {
                       // Botão Camada PVE
                       _buildBotaoCamada(
                         icone: Icons.shield_outlined,
-                        label: "PVE",
+                        label: tr('maps.layer_pve'),
                         ativo: _mostrarCamadaPve,
                         corAtiva: Colors.greenAccent,
                         onTap: () => setState(
@@ -198,7 +197,7 @@ class _MapsAppState extends State<MapsApp> {
                       // Botão Camada Players
                       _buildBotaoCamada(
                         icone: Icons.person_pin_circle_outlined,
-                        label: "Players",
+                        label: tr('maps.layer_players'),
                         ativo: _mostrarCamadaPlayers,
                         corAtiva: _corDestaque,
                         onTap: () => setState(
@@ -234,17 +233,17 @@ class _MapsAppState extends State<MapsApp> {
                               color: _corDestaque.withValues(alpha: 0.5),
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.folder_open,
                                 color: _corDestaque,
                                 size: 12,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                "Mapa",
-                                style: TextStyle(
+                                tr('maps.btn_map'),
+                                style: const TextStyle(
                                   color: _corDestaque,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -258,7 +257,7 @@ class _MapsAppState extends State<MapsApp> {
                   ),
                 ),
 
-                // ÁREA INTERATIVA DO MAPA QUADRADO (Sem sobra de bordas laterais)
+                // ÁREA INTERATIVA DO MAPA QUADRADO
                 Expanded(
                   child: ClipRect(
                     child: InteractiveViewer(
@@ -269,7 +268,6 @@ class _MapsAppState extends State<MapsApp> {
                           aspectRatio: 1.0,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              // Tamanho exato em pixels do quadrado visível na tela
                               final double tamanhoBox = constraints.maxWidth;
 
                               return Stack(
@@ -295,7 +293,6 @@ class _MapsAppState extends State<MapsApp> {
                                   // CAMADA 1: Retângulos de Zona PVE
                                   if (_mostrarCamadaPve)
                                     ...widget.retangulosPve.map((limites) {
-                                      // limites = [minX, maxX, minZ, maxZ]
                                       final left = _converterXParaPixel(
                                         limites[0],
                                         tamanhoBox,
@@ -304,7 +301,6 @@ class _MapsAppState extends State<MapsApp> {
                                         limites[1],
                                         tamanhoBox,
                                       );
-                                      // No jogo maxZ (limites[3]) fica mais ao norte (menor pixel Y)
                                       final top = _converterZParaPixel(
                                         limites[3],
                                         tamanhoBox,
@@ -313,7 +309,6 @@ class _MapsAppState extends State<MapsApp> {
                                         limites[2],
                                         tamanhoBox,
                                       );
-
                                       return Positioned(
                                         left: left,
                                         top: top,
@@ -340,7 +335,6 @@ class _MapsAppState extends State<MapsApp> {
                                         ),
                                       );
                                     }),
-
                                   // CAMADA 2: Pinos dos Jogadores Online
                                   if (_mostrarCamadaPlayers)
                                     ...widget.playersOnline.map((player) {
@@ -360,9 +354,7 @@ class _MapsAppState extends State<MapsApp> {
                                       final corPino = isPvp
                                           ? Colors.redAccent
                                           : Colors.greenAccent;
-
                                       return Positioned(
-                                        // Centraliza o ponto de 10px exatamente na coordenada
                                         left: px - 5,
                                         top: py - 5,
                                         child: GestureDetector(
@@ -373,8 +365,16 @@ class _MapsAppState extends State<MapsApp> {
                                             }
                                           },
                                           child: Tooltip(
-                                            message:
-                                                "${player.nome} (Nv.${player.level})\nX: ${player.x.toInt()} Z: ${player.z.toInt()} [${player.zonaAtual}]",
+                                            message: tr(
+                                              'maps.player_tooltip',
+                                              args: {
+                                                'player': player.nome,
+                                                'level': '${player.level}',
+                                                'x': '${player.x.toInt()}',
+                                                'z': '${player.z.toInt()}',
+                                                'zone': player.zonaAtual,
+                                              },
+                                            ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
@@ -465,7 +465,10 @@ class _MapsAppState extends State<MapsApp> {
                   ),
                   color: _corInputFundo,
                   child: Text(
-                    "RASTREADORES ATIVOS (${widget.playersOnline.length})",
+                    tr(
+                      'maps.active_trackers',
+                      args: {'count': '${widget.playersOnline.length}'},
+                    ),
                     style: const TextStyle(
                       color: _corDestaque,
                       fontSize: 10,

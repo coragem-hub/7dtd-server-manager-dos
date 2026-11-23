@@ -1,6 +1,5 @@
-// lib/apps/zorkut_app.dart
-
 import 'package:flutter/material.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 import '../models/log_token.dart';
 import '../models/jogador_status.dart';
@@ -62,7 +61,7 @@ class _ZorkutAppState extends State<ZorkutApp> {
     if (estaNoFundo && !_autoScroll) {
       setState(() {
         _autoScroll = true;
-        _novasMensagensNaoLidas = 0; // Zera o contador ao voltar para o fim
+        _novasMensagensNaoLidas = 0;
       });
     } else if (!estaNoFundo && _autoScroll) {
       setState(() {
@@ -91,7 +90,6 @@ class _ZorkutAppState extends State<ZorkutApp> {
           }
         });
       } else if (!_autoScroll) {
-        // Se a rolagem está pausada, acumula no contador visual
         setState(() {
           _novasMensagensNaoLidas += diferenca;
         });
@@ -127,10 +125,8 @@ class _ZorkutAppState extends State<ZorkutApp> {
     if (texto.isEmpty) return;
 
     if (_modoVanilla) {
-      // Envia o comando nativo do console do 7D2D
       widget.onEnviarMensagem('say "$texto"');
     } else {
-      // Mantém o envio padrão para o Prisma Core
       widget.onEnviarMensagem(texto);
     }
 
@@ -211,7 +207,7 @@ class _ZorkutAppState extends State<ZorkutApp> {
                         ),
                       ),
 
-                      // CONTADOR FLUTUANTE DE NOVAS MENSAGENS (Só aparece se pausado + mensagens novas)
+                      // CONTADOR FLUTUANTE DE NOVAS MENSAGENS
                       if (!_autoScroll && _novasMensagensNaoLidas > 0)
                         Positioned(
                           bottom: 8,
@@ -248,8 +244,14 @@ class _ZorkutAppState extends State<ZorkutApp> {
                                   const SizedBox(width: 4),
                                   Text(
                                     _novasMensagensNaoLidas == 1
-                                        ? "1 nova mensagem"
-                                        : "$_novasMensagensNaoLidas novas mensagens",
+                                        ? tr('zorkut.new_msg_single')
+                                        : tr(
+                                            'zorkut.new_msg_plural',
+                                            args: {
+                                              'count':
+                                                  '$_novasMensagensNaoLidas',
+                                            },
+                                          ),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -285,8 +287,8 @@ class _ZorkutAppState extends State<ZorkutApp> {
                       // BOTÃO ALTERNADOR: PRISMA CORE vs VANILLA (SAY)
                       Tooltip(
                         message: _modoVanilla
-                            ? 'Modo Vanilla: envia comando nativo "say"'
-                            : 'Modo Prisma Core: envia via mod',
+                            ? tr('zorkut.tooltip_mode_vanilla')
+                            : tr('zorkut.tooltip_mode_prisma'),
                         child: InkWell(
                           onTap: () {
                             setState(() {
@@ -327,8 +329,7 @@ class _ZorkutAppState extends State<ZorkutApp> {
                         ),
                       ),
                       const SizedBox(width: 6),
-
-                      // Campo de Texto
+                      // Campo texto
                       Expanded(
                         child: TextField(
                           controller: _inputController,
@@ -340,8 +341,8 @@ class _ZorkutAppState extends State<ZorkutApp> {
                           ),
                           decoration: InputDecoration(
                             hintText: _modoVanilla
-                                ? 'Enviar via say (Vanilla)...'
-                                : 'Enviar mensagem no Zorkut...',
+                                ? tr('zorkut.hint_vanilla')
+                                : tr('zorkut.hint_prisma'),
                             hintStyle: TextStyle(
                               color: _corDestaque.withValues(alpha: 0.4),
                               fontSize: 11,
@@ -377,7 +378,6 @@ class _ZorkutAppState extends State<ZorkutApp> {
                         ),
                       ),
                       const SizedBox(width: 6),
-
                       // Botão Enviar
                       IconButton(
                         onPressed: _dispararMensagem,
@@ -388,7 +388,7 @@ class _ZorkutAppState extends State<ZorkutApp> {
                               : _corDestaque,
                           size: 18,
                         ),
-                        tooltip: 'Enviar',
+                        tooltip: tr('zorkut.tooltip_send'),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -418,7 +418,10 @@ class _ZorkutAppState extends State<ZorkutApp> {
                   ),
                   color: _corInputFundo,
                   child: Text(
-                    "ONLINE (${widget.jogadoresZorkut.length})",
+                    tr(
+                      'zorkut.online_header',
+                      args: {'count': '${widget.jogadoresZorkut.length}'},
+                    ),
                     style: const TextStyle(
                       color: _corDestaque,
                       fontSize: 10,
@@ -478,7 +481,13 @@ class _ZorkutAppState extends State<ZorkutApp> {
                                   top: 1,
                                 ),
                                 child: Text(
-                                  "Lvl: ${player.level}  |  ${player.ping}ms",
+                                  tr(
+                                    'zorkut.player_stats',
+                                    args: {
+                                      'level': '${player.level}',
+                                      'ping': '${player.ping}',
+                                    },
+                                  ),
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.4),
                                     fontSize: 9,

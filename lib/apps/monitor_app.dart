@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 class MonitorApp extends StatefulWidget {
   final List<String> logs;
@@ -46,7 +47,6 @@ class _MonitorAppState extends State<MonitorApp> {
     super.didUpdateWidget(oldWidget);
     final totalAtual = widget.logs.length;
 
-    // Se a lista foi limpa, reseta os contadores e destrava o scroll
     if (totalAtual == 0) {
       _totalLogsAnterior = 0;
       if (_novosLogsNaoLidos > 0 || !_autoScroll) {
@@ -107,7 +107,7 @@ class _MonitorAppState extends State<MonitorApp> {
       color: const Color(0xFF050505),
       child: Column(
         children: [
-          // Barra interna de controle do app (sem poluir o main.dart)
+          // Barra interna de controle do app
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -132,7 +132,9 @@ class _MonitorAppState extends State<MonitorApp> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _autoScroll ? "Auto-Scroll: ON" : "Rolagem Pausada",
+                        _autoScroll
+                            ? tr('logs_common.autoscroll_on')
+                            : tr('logs_common.scroll_paused'),
                         style: TextStyle(
                           color: _autoScroll
                               ? const Color(0xFF39FF14)
@@ -146,17 +148,17 @@ class _MonitorAppState extends State<MonitorApp> {
                 ),
                 InkWell(
                   onTap: () => widget.onLimparTela(),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.cleaning_services,
                         color: Colors.amberAccent,
                         size: 12,
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        "Limpar Tela",
-                        style: TextStyle(
+                        tr('logs_common.clear_screen'),
+                        style: const TextStyle(
                           color: Colors.amberAccent,
                           fontSize: 10,
                         ),
@@ -167,7 +169,6 @@ class _MonitorAppState extends State<MonitorApp> {
               ],
             ),
           ),
-          // Lista de logs
           // Lista de logs otimizada com SelectionArea único
           Expanded(
             child: Padding(

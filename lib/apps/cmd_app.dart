@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 class CmdApp extends StatelessWidget {
   final TextEditingController comandoController;
@@ -17,14 +18,14 @@ class CmdApp extends StatelessWidget {
 
     return Column(
       children: [
-        const Expanded(
+        Expanded(
           child: Padding(
-            padding: EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(12.0),
             child: Align(
               alignment: Alignment.topLeft,
               child: Text(
-                "SD-DOS [v1.0.24]. (cr) Nenhuma responsabilidade assumida.\nWelcome to SUCATEC CORP. Unified Operating System (TM)\n\nDigite comandos personalizados abaixo e pressione ENTER:\n\n",
-                style: TextStyle(
+                tr('cmd.banner'),
+                style: const TextStyle(
                   color: Colors.grey,
                   fontFamily: 'CustomFontA',
                   fontSize: 12,

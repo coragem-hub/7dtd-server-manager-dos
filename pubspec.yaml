@@ -83,6 +83,7 @@ flutter:
 
   assets:
     - assets/maps/Navezgane/images/Navezgane.webp
+    - assets/lang/
 
 
   # For details regarding fonts from package dependencies,

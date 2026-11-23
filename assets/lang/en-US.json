@@ -1,0 +1,465 @@
+{
+    "_meta": {
+        "language_name": "English (US)",
+        "language_code": "en-US",
+        "tray_top": "ENG",
+        "tray_bottom": "USA",
+        "ai_instructions": "Keep a retro DOS operating system tone and standard game server terminology (Proxy, Telnet, Ping, PVP, PVE). Never translate color tags like [39FF14] or variables in curly braces like {player}."
+    },
+    "topbar": {
+        "title": {
+            "text": "SD-DOS Server Manager (7 Days to Die)",
+            "context": "Main fixed title on the top bar of the screen."
+        },
+        "proxy_online": {
+            "text": "PROXY ONLINE",
+            "context": "Green status in the top right corner indicating an active connection."
+        },
+        "proxy_offline": {
+            "text": "PROXY OFFLINE",
+            "context": "Red status in the top right corner indicating disconnection."
+        }
+    },
+    "desktop": {
+        "cmd": {
+            "text": "Prompt (CMD)",
+            "context": "Terminal icon label on the desktop. Max 15 characters to fit within 72px."
+        },
+        "monitor": {
+            "text": "Log Monitor",
+            "context": "Raw log monitor icon label on the desktop. Max 16 characters."
+        },
+        "logsplit": {
+            "text": "Log Splitter",
+            "context": "Event filter icon label on the desktop. Max 15 characters."
+        },
+        "zorkut": {
+            "text": "Zorkut Chat",
+            "context": "Global chat icon label on the desktop. Max 15 characters."
+        },
+        "maps": {
+            "text": "Maps",
+            "context": "Player map/radar icon label on the desktop."
+        },
+        "netconfig": {
+            "text": "NetConfig",
+            "context": "Network configuration icon label on the desktop."
+        }
+    },
+    "windows": {
+        "monitor_title": {
+            "text": "Log Monitor - Kernel Traffic",
+            "context": "Window title bar for the Log Monitor."
+        },
+        "logsplit_title": {
+            "text": "LogSplit - Filtered Events",
+            "context": "Window title bar for the Log Splitter."
+        },
+        "zorkut_title": {
+            "text": "Zorkut - Global Chat",
+            "context": "Window title bar for the chat."
+        },
+        "maps_title": {
+            "text": "Maps - Satellite Monitoring",
+            "context": "Window title bar for the map."
+        },
+        "netconfig_title": {
+            "text": "NetConfig - Network Properties",
+            "context": "Window title bar for network settings."
+        }
+    },
+    "system_logs": {
+        "no_network_config": {
+            "text": "[System] No network configuration found.",
+            "context": "Message displayed in the background console on first launch."
+        },
+        "open_netconfig_hint": {
+            "text": "[System] Open the Network app to configure the Proxy.",
+            "context": "Instruction displayed in the console right after detecting missing configuration."
+        },
+        "config_saved": {
+            "text": "[System] Network settings saved. Restarting connection...",
+            "context": "Log generated when the user saves IP, port, and token in NetConfig."
+        },
+        "connecting": {
+            "text": "[System] Attempting to connect to Python Proxy...",
+            "context": "WebSocket connection attempt log."
+        },
+        "connected": {
+            "text": "[System] Connected successfully!",
+            "context": "WebSocket connection established confirmation log."
+        },
+        "disconnected": {
+            "text": "[System] Disconnected ({reason}). Reconnecting in 5s...",
+            "context": "Connection drop log. Do not translate {reason}."
+        }
+    },
+    "automation": {
+        "pvp_warning_pm": {
+            "text": "[39FF14]BotAdm (PM):[-] [FF7979]Hostile Biome[-] [eb3f24]PVP ACTIVE![-]          Anarchy: Kill, Steal, Raid, Griefing, Trap, etc.               [F9CA24]Do not abuse! Respect Borders and ALL Traders![-]",
+            "context": "Private message sent inside 7 Days to Die when a player enters the PVP zone. Preserve exact color tags [HEX] and [-] and spacing."
+        },
+        "pve_warning_pm": {
+            "text": "[39FF14]BotAdm (PM):[-] [78E08F]Pine Forest[-] [00ff00]PVE ACTIVE![-]          Forbidden: Killing players, Raid, Griefing, Trap, etc.          [F9CA24]Respect PVE! Pine Forest and ALL Traders![-]",
+            "context": "Private message sent inside 7 Days to Die when a player returns to the PVE safe zone. Preserve exact color tags [HEX] and [-] and spacing."
+        },
+        "pvp_log_sent": {
+            "text": "BotAdm sent PVP warning to {player}",
+            "context": "Internal LogSplit entry stating the PVP warning was triggered. Do not translate {player}."
+        },
+        "pve_log_sent": {
+            "text": "BotAdm sent PVE warning to {player}",
+            "context": "Internal LogSplit entry stating the PVE warning was triggered. Do not translate {player}."
+        }
+    },
+    "netconfig": {
+        "tab_connection": {
+            "text": "1. Panel Connection",
+            "context": "Title of the first tab in NetConfig."
+        },
+        "tab_generator": {
+            "text": "2. Generate Script (.py / .bat)",
+            "context": "Title of the second tab in NetConfig."
+        },
+        "status_online": {
+            "text": "ONLINE",
+            "context": "Short green badge at the top right of NetConfig."
+        },
+        "status_offline": {
+            "text": "OFFLINE",
+            "context": "Short red badge at the top right of NetConfig."
+        },
+        "btn_understood": {
+            "text": "GOT IT",
+            "context": "Close button inside the help dialog."
+        },
+        "tooltip_show": {
+            "text": "Show value",
+            "context": "Eye icon tooltip on password/IP fields."
+        },
+        "tooltip_hide": {
+            "text": "Hide value",
+            "context": "Eye icon tooltip on password/IP fields."
+        },
+        "feedback_fill_panel": {
+            "text": "Please fill in IP, Port, and Token before connecting.",
+            "context": "Error message on the bottom bar when saving empty fields in tab 1."
+        },
+        "feedback_connecting": {
+            "text": "Settings saved! Attempting to connect to Proxy...",
+            "context": "Success message on the bottom bar after saving settings."
+        },
+        "feedback_fill_script": {
+            "text": "Please fill in Host, Telnet Password, and WS Token to generate the script.",
+            "context": "Error message when trying to generate the .py file with missing required fields."
+        },
+        "feedback_py_saved": {
+            "text": "Python script saved successfully!",
+            "context": "Confirmation after saving the .py file."
+        },
+        "feedback_bat_folder_missing": {
+            "text": "Enter the folder path or uncheck manual path.",
+            "context": "Error when generating .bat with manual path checked but empty."
+        },
+        "feedback_bat_saved": {
+            "text": ".BAT file saved successfully!",
+            "context": "Confirmation after saving the .bat file."
+        },
+        "dialog_save_py": {
+            "text": "Save Proxy Python Script",
+            "context": "Native OS file picker dialog title when saving the .py file."
+        },
+        "dialog_save_bat": {
+            "text": "Save Windows Launcher (.bat)",
+            "context": "Native OS file picker dialog title when saving the .bat file."
+        },
+        "sec_panel_title": {
+            "text": "TCP/IP NETWORK PARAMETERS (WEBSOCKET PROXY)",
+            "context": "Section subtitle in tab 1."
+        },
+        "help_panel_title": {
+            "text": "Connect interface to WebSocket Proxy",
+            "context": "Help dialog title for tab 1."
+        },
+        "help_panel_body": {
+            "text": "• Enter the IP where the WebSocket Proxy Script is running.\n• It may differ from the game server IP.\n• 127.0.0.1 if running on the same PC,\n• 192.168.(...) on local network (set static IP in router),\n• External IP requires port forwarding.\n• Enter the port configured in the WebSocket Script.\n• Enter the token configured in the WebSocket Script.",
+            "context": "Help text explaining WebSocket connection. Preserve line breaks \\n and bullet markers •."
+        },
+        "label_proxy_ip": {
+            "text": "Proxy IP (Ex: 127.0.0.1)",
+            "context": "IP input field label in tab 1."
+        },
+        "label_ws_port": {
+            "text": "WS Port",
+            "context": "Short label for WebSocket port input."
+        },
+        "label_ws_token": {
+            "text": "Secret Access Token (WS_TOKEN)",
+            "context": "Token input field label in tab 1."
+        },
+        "btn_connecting": {
+            "text": "CONNECTING...",
+            "context": "Main button text while connection is in progress."
+        },
+        "btn_save_connect": {
+            "text": "SAVE AND CONNECT TO PROXY",
+            "context": "Main save and connect button text in tab 1."
+        },
+        "sec_telnet_title": {
+            "text": "1. TELNET CONFIGURATION (7 DAYS TO DIE)",
+            "context": "Section 1 subtitle in tab 2."
+        },
+        "help_telnet_title": {
+            "text": "Connect script to the game server",
+            "context": "Telnet help dialog title."
+        },
+        "help_telnet_body": {
+            "text": "• Enter the game server IP the script should connect to.\n• 127.0.0.1 (localhost) if on the same machine,\n• 192.168.(...) on local network (set static IP in router),\n• External IP requires port forwarding.\n• Check serverconfig.xml or sdtdserver.xml on your server.\n• Ensure TelnetEnabled is set to true.\n• Configure TelnetPort and TelnetPassword.\n• Use a long password with letters, numbers, and symbols.\n• This is the Telnet password, not the web control panel password.",
+            "context": "Help text explaining 7 Days to Die Telnet setup. Keep XML filenames and TelnetEnabled, TelnetPort, TelnetPassword intact."
+        },
+        "label_sdtd_ip": {
+            "text": "7D2D Server IP",
+            "context": "Game server IP input label."
+        },
+        "label_telnet_port": {
+            "text": "Telnet Port",
+            "context": "Short label for Telnet port input."
+        },
+        "label_telnet_pass": {
+            "text": "Telnet Password (serverconfig.xml or sdtdserver.xml)",
+            "context": "Telnet password input label."
+        },
+        "sec_ws_title": {
+            "text": "2. WEBSOCKET BRIDGE CONFIGURATION",
+            "context": "Section 2 subtitle in tab 2."
+        },
+        "help_ws_title": {
+            "text": "WebSocket Bridge Setup",
+            "context": "WebSocket bridge help dialog title."
+        },
+        "help_ws_body": {
+            "text": "• IP address the SCRIPT should bind/listen to (not the game server).\n• 127.0.0.1 (localhost) if running on the same PC,\n• Specific local or external IP to restrict access,\n• 0.0.0.0 to accept connections from any internal or external IP.\n• External IP requires port forwarding.\n• This is not the IP you enter in the panel connection tab.\n• In the panel tab, point to the script's IP.\n• WS Port (e.g., 8082) may require port forwarding.\n• Create an authentication Token for the connection.\n• Use a long password with letters, numbers, and symbols.",
+            "context": "Help text explaining Python WebSocket host and port. Preserve line breaks \\n."
+        },
+        "label_ws_listen": {
+            "text": "Allowed WS bind hosts (0.0.0.0, 127.0.0.1, or static)",
+            "context": "WS_HOST field label."
+        },
+        "label_create_token": {
+            "text": "Create Authentication Token (WS_TOKEN)",
+            "context": "Field label to create WS_TOKEN."
+        },
+        "sec_bat_title": {
+            "text": "3. LAUNCHER CONFIGURATION (.BAT)",
+            "context": "Section 3 subtitle in tab 2."
+        },
+        "help_bat_title": {
+            "text": "Generate .BAT file to launch the script",
+            "context": "Help dialog title for the .BAT file."
+        },
+        "help_bat_body": {
+            "text": "• The .BAT file is a shortcut to start the Python script.\n• By default, it looks for the script in the same folder as the .BAT.\n• If the script is in another folder, check the box and enter its path.\n• The Python filename must match the file you saved.\n• Example filename: WebsocketsExample.py\n• The .BAT lets you start the bridge without opening a terminal.",
+            "context": "Help text explaining the Windows .BAT launcher. Keep WebsocketsExample.py and line breaks \\n."
+        },
+        "label_py_filename": {
+            "text": "Python filename (.py)",
+            "context": "Python filename input label."
+        },
+        "checkbox_manual_folder_on": {
+            "text": "Only needed if the Python script is in another folder",
+            "context": "Checkbox label when checked."
+        },
+        "checkbox_manual_folder_off": {
+            "text": "Set folder manually (Defaults to same folder)",
+            "context": "Checkbox label when unchecked."
+        },
+        "label_py_folder": {
+            "text": "Folder where .py is saved (Ex: C:\\SD-DOS-Proxy)",
+            "context": "Manual folder path input label."
+        },
+        "btn_download_py": {
+            "text": "DOWNLOAD SCRIPT (.PY)",
+            "context": "Button to export Python script."
+        },
+        "btn_download_bat": {
+            "text": "DOWNLOAD LAUNCHER (.BAT)",
+            "context": "Button to export Windows .BAT launcher."
+        }
+    },
+    "proxy_script": {
+        "py_connecting": {
+            "text": "[7DTD] Attempting to connect to game at {SDTD_HOST}:{SDTD_PORT}...",
+            "context": "Python proxy console message. Do not translate {SDTD_HOST} or {SDTD_PORT}."
+        },
+        "py_connected": {
+            "text": "[7DTD] Connected successfully and real-time log streaming enabled!",
+            "context": "Python proxy console message when Telnet connects."
+        },
+        "py_conn_error": {
+            "text": "[7DTD ERROR] Connection failed or dropped: {e}. Retrying in 5 seconds...",
+            "context": "Python console error message. Do not translate {e}."
+        },
+        "py_blocked": {
+            "text": "[BLOCKED] Connection attempt refused. Invalid or missing token.",
+            "context": "Python console warning when someone tries to connect without a valid WS_TOKEN."
+        },
+        "py_client_connected": {
+            "text": "[WS] New AUTHENTICATED interface connected! Total devices: {len(interfaces_conectadas)}",
+            "context": "Python console log. Do not translate {len(interfaces_conectadas)}."
+        },
+        "py_cmd_injected": {
+            "text": "[WS -> GAME] Command injected by authenticated ADMIN: {comando}",
+            "context": "Python console log. Do not translate {comando}."
+        },
+        "py_err_not_connected": {
+            "text": "Error: The main proxy script is not connected to the game server right now.",
+            "context": "Message sent back to the UI when Python is not connected to the game Telnet."
+        },
+        "py_client_disconnected": {
+            "text": "[WS] Interface disconnected. Remaining total: {len(interfaces_conectadas)}",
+            "context": "Python console log. Do not translate {len(interfaces_conectadas)}."
+        },
+        "py_listening": {
+            "text": "[WS Server] Listening for interface connections on port {WS_PORT} with active security...",
+            "context": "Initial Python WebSocket server log. Do not translate {WS_PORT}."
+        },
+        "py_stopped": {
+            "text": "[Proxy] Stopped by administrator.",
+            "context": "Message when stopping the script with Ctrl+C."
+        },
+        "bat_starting": {
+            "text": "Starting WebSocket bridge for 7 Days to Die...",
+            "context": "Message displayed in the Windows terminal when running the .bat file."
+        }
+    },
+    "zorkut": {
+        "new_msg_single": {
+            "text": "1 new message",
+            "context": "Floating badge in chat when there is exactly 1 unread message while scroll is paused."
+        },
+        "new_msg_plural": {
+            "text": "{count} new messages",
+            "context": "Floating badge in chat when there are 2 or more unread messages. Do not translate {count}."
+        },
+        "tooltip_mode_vanilla": {
+            "text": "Vanilla Mode: sends native \"say\" command",
+            "context": "Toggle button tooltip when in Vanilla mode."
+        },
+        "tooltip_mode_prisma": {
+            "text": "Prisma Core Mode: sends via mod",
+            "context": "Toggle button tooltip when in Prisma Core mode."
+        },
+        "hint_vanilla": {
+            "text": "Send via say (Vanilla)...",
+            "context": "Chat input placeholder in Vanilla mode."
+        },
+        "hint_prisma": {
+            "text": "Send message on Zorkut...",
+            "context": "Chat input placeholder in Prisma Core mode."
+        },
+        "tooltip_send": {
+            "text": "Send",
+            "context": "Send message icon tooltip."
+        },
+        "online_header": {
+            "text": "ONLINE ({count})",
+            "context": "Header of the connected players sidebar. Do not translate {count}."
+        },
+        "player_stats": {
+            "text": "Lvl: {level}  |  {ping}ms",
+            "context": "Subtitle below player name in online list showing level and latency. Keep short and do not translate {level} or {ping}."
+        }
+    },
+    "cmd": {
+        "banner": {
+            "text": "SD-DOS [v1.2.0]. (cr) No responsibility assumed.\nWelcome to SUCATEC CORP. Unified Operating System (TM)\n\nType custom commands below and press ENTER:\n\n",
+            "context": "MS-DOS style terminal header text in the Prompt (CMD) app. Preserve line breaks \\n and retro style."
+        }
+    },
+    "logs_common": {
+        "autoscroll_on": {
+            "text": "Auto-Scroll: ON",
+            "context": "Top bar toggle in Monitor and LogSplit when auto-scrolling is active."
+        },
+        "scroll_paused": {
+            "text": "Scroll Paused",
+            "context": "Top bar toggle in Monitor and LogSplit when the user scrolls up and pauses auto-scroll."
+        },
+        "clear_screen": {
+            "text": "Clear Screen",
+            "context": "Top bar button in Monitor and LogSplit to wipe logs from memory."
+        }
+    },
+    "maps": {
+        "dialog_title": {
+            "text": "LOAD CUSTOM MAP",
+            "context": "Pop-up dialog title for loading a custom map image."
+        },
+        "label_file_path": {
+            "text": "File path (.png / .webp)",
+            "context": "Input label for the map image file path."
+        },
+        "label_map_size": {
+            "text": "Map Size (Ex: 6144, 8192, 10240, 16384)",
+            "context": "Numeric input label defining world width/height in blocks."
+        },
+        "btn_restore_default": {
+            "text": "Restore Default",
+            "context": "Dialog button to revert back to the default Navezgane map."
+        },
+        "btn_apply": {
+            "text": "Apply",
+            "context": "Confirm button in the custom map dialog."
+        },
+        "layer_pve": {
+            "text": "PVE",
+            "context": "Short top bar toggle for PVE safe zones."
+        },
+        "layer_players": {
+            "text": "Players",
+            "context": "Short top bar toggle for player pins."
+        },
+        "btn_map": {
+            "text": "Map",
+            "context": "Short top bar button to open custom map settings."
+        },
+        "player_tooltip": {
+            "text": "{player} (Lvl.{level})\nX: {x} Z: {z} [{zone}]",
+            "context": "Tooltip shown when hovering over a player pin on the radar. Do not translate {player}, {level}, {x}, {z}, or {zone}."
+        },
+        "active_trackers": {
+            "text": "ACTIVE TRACKERS ({count})",
+            "context": "Right sidebar header in Maps (max width 170px, keep short). Do not translate {count}."
+        }
+    },
+    "tray_and_logs": {
+        "tooltip_language": {
+            "text": "Language / Idioma",
+            "context": "Tooltip when hovering over the language selector (ENG/USA) on the taskbar."
+        },
+        "tooltip_script_on": {
+            "text": "7D2D Script: Receiving logs",
+            "context": "Tooltip for the green document icon in the system tray when server data is flowing."
+        },
+        "tooltip_script_off": {
+            "text": "7D2D Script: No Telnet response",
+            "context": "Tooltip for the yellow document icon in the system tray when no game data is received."
+        },
+        "tooltip_proxy_on": {
+            "text": "WebSocket Proxy: Connected",
+            "context": "Tooltip for the green network icon in the system tray."
+        },
+        "tooltip_proxy_off": {
+            "text": "WebSocket Proxy: Disconnected (Check Python)",
+            "context": "Tooltip for the red network icon in the system tray."
+        },
+        "lp_cycle_summary": {
+            "text": "{summary}  •  Cycle #{cycle} ({time})",
+            "context": "LogSplit summary line after listing online players. Do not translate {summary}, {cycle}, or {time}."
+        },
+        "cmd_prefix": {
+            "text": "[Command] {cmd}",
+            "context": "Prefix shown in Monitor when admin sends a command via Prompt. Do not translate {cmd}."
+        }
+    }
+}

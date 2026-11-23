@@ -10,11 +10,14 @@ import 'package:sd_dos_dart/apps/zorkut_app.dart';
 import 'package:sd_dos_dart/apps/maps_app.dart';
 import 'package:sd_dos_dart/apps/netconfig_app.dart';
 import 'package:sd_dos_dart/models/jogador_status.dart';
+import 'package:sd_dos_dart/services/lang_service.dart';
 
 import 'dart:math';
 import 'dart:async';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LangService.instance.inicializar();
   runApp(const SdDOSManager());
 }
 
@@ -22,15 +25,20 @@ class SdDOSManager extends StatelessWidget {
   const SdDOSManager({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SD-DOS Server Manager',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: 'CustomFontA',
-        scaffoldBackgroundColor: const Color.fromARGB(255, 30, 30, 30),
-        primaryColor: const Color(0xFF39FF14),
-      ),
-      home: const DashboardPage(),
+    return ListenableBuilder(
+      listenable: LangService.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'SD-DOS Server Manager',
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            fontFamily: 'CustomFontA',
+            scaffoldBackgroundColor: const Color.fromARGB(255, 30, 30, 30),
+            primaryColor: const Color(0xFF39FF14),
+          ),
+          home: const DashboardPage(),
+        );
+      },
     );
   }
 }
@@ -150,10 +158,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
     if (ipProxy.isEmpty || token.isEmpty) {
       setState(() {
-        _logs.add("[Sistema] Nenhuma configuração de rede encontrada.");
-        _logs.add(
-          "[Sistema] Abra o aplicativo de Rede para configurar o Proxy.",
-        );
+        _logs.add(tr('system_logs.no_network_config'));
+        _logs.add(tr('system_logs.open_netconfig_hint'));
         // Já abre a janela de configurações de rede automaticamente no primeiro uso
         _appsAbertos['netconfig'] = true;
         _appsMinimizados['netconfig'] = false;
@@ -180,9 +186,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ipProxy = novoIp.trim();
       portaProxy = novaPorta.trim();
       token = novoToken.trim();
-      _adicionarLogBruto(
-        "[Sistema] Configurações de rede salvas. Reiniciando conexão...",
-      );
+      _adicionarLogBruto(tr('system_logs.config_saved'));
     });
 
     _conectarAoProxy();
@@ -203,7 +207,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _conectado = false;
       _scriptConectado = false;
       _adicionarLogBruto(
-        "[Sistema] Desconectado ($mensagemErro). Tentando reconectar em 5s...",
+        tr('system_logs.disconnected', args: {'reason': mensagemErro}),
       );
     });
 
@@ -255,7 +259,7 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _conectado = false;
       _scriptConectado = false;
-      _adicionarLogBruto("[Sistema] Tentando conectar ao Proxy Python...");
+      _adicionarLogBruto(tr('system_logs.connecting'));
     });
 
     try {
@@ -278,7 +282,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       setState(() {
         _conectado = true;
-        _adicionarLogBruto("[Sistema] Conectado com sucesso!");
+        _adicionarLogBruto(tr('system_logs.connected'));
       });
 
       _iniciarLoopRastreamentoAleatorio();
@@ -367,10 +371,12 @@ class _DashboardPageState extends State<DashboardPage> {
               if (zonaCalculada == "PVP") {
                 enviarMensagemHub(
                   comandoBruto:
-                      'pm "${novoJogador.nome}" "[39FF14]BotAdm (MP):[-] [FF7979]Bioma Hostil[-] [eb3f24]PVP ATIVO![-]          Anarquia: Matar, Roubar, Raid, Griefing, Trap, etc.          [F9CA24]Não abuse! Respeite Fronteiras e TODOS os Traders![-]"',
+                      'pm "${novoJogador.nome}" "${tr('automation.pvp_warning_pm')}"',
                   tagExibicao: "[PM]",
-                  textoLimpo:
-                      "BotAdm enviou aviso de PVP para ${novoJogador.nome}",
+                  textoLimpo: tr(
+                    'automation.pvp_log_sent',
+                    args: {'player': novoJogador.nome},
+                  ),
                   corLabel: Colors.purpleAccent,
                 );
               } else if (jogadorAntigo != null &&
@@ -378,10 +384,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   zonaCalculada == "PVE") {
                 enviarMensagemHub(
                   comandoBruto:
-                      'pm "${novoJogador.nome}" "[39FF14]BotAdm (MP):[-] [78E08F]Floresta Pinhal[-] [00ff00]PVE ATIVO![-]          Proibido: Matar jogadores, Raid, Griefing, Trap, etc.          [F9CA24]Respeite PVE! Floresta Pinhal e TODOS os Traders![-]"',
+                      'pm "${novoJogador.nome}" "${tr('automation.pve_warning_pm')}"',
                   tagExibicao: "[PM]",
-                  textoLimpo:
-                      "BotAdm enviou aviso de PVE para ${novoJogador.nome}",
+                  textoLimpo: tr(
+                    'automation.pve_log_sent',
+                    args: {'player': novoJogador.nome},
+                  ),
                   corLabel: Colors.greenAccent,
                 );
               }
@@ -439,8 +447,14 @@ class _DashboardPageState extends State<DashboardPage> {
             tokenTratado = LogToken(
               linhaPura: linhaBruta,
               tag: "[LP]",
-              mensagemLimpa:
-                  "$resumoTotal  •  Ciclo #$_contadorCiclosLp ($horaFormatada)",
+              mensagemLimpa: tr(
+                'tray_and_logs.lp_cycle_summary',
+                args: {
+                  'summary': resumoTotal,
+                  'cycle': '$_contadorCiclosLp',
+                  'time': horaFormatada,
+                },
+              ),
               corTag: Colors.deepPurpleAccent,
               icone: Icons.groups,
             );
@@ -578,7 +592,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // Verifica se o comando não está vazio e se a conexão WebSocket está ativa
     if (comandoLimpo.isNotEmpty && _channel != null && _conectado) {
       _logs.add(
-        "[Comando] $comandoLimpo",
+        tr('tray_and_logs.cmd_prefix', args: {'cmd': comandoLimpo}),
       ); // Adiciona o comando à lista de logs
       _channel!.sink.add(
         comandoLimpo,
@@ -1027,15 +1041,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const SizedBox(
+                          SizedBox(
                             width:
                                 72, // Trava a largura do texto igual à do ícone
                             child: Text(
-                              'Monitor de Logs',
+                              tr('desktop.monitor'),
                               textAlign: TextAlign.center, // Centraliza o texto
                               maxLines: 2, // Permite quebrar em até 2 linhas
                               overflow: TextOverflow.ellipsis, // Adiciona "..." se passar de 2 linhas
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                               ),
@@ -1253,7 +1267,7 @@ class _DashboardPageState extends State<DashboardPage> {
             } else if (id == 'monitor') {
               return _construirJanela(
                 id: 'monitor',
-                titulo: 'Monitor de Tráfego do Núcleo (Kernel)',
+                titulo: tr('windows.monitor_title'),
                 conteudo: MonitorApp(
                   logs: _logs,
                   onLimparTela: () {
@@ -1266,7 +1280,7 @@ class _DashboardPageState extends State<DashboardPage> {
             } else if (id == 'logsplit') {
               return _construirJanela(
                 id: 'logsplit',
-                titulo: 'LogSplit - Eventos Filtrados',
+                titulo: tr('windows.logsplit_title'),
                 corTema: Colors.amberAccent,
                 larguraJanela: 550,
                 alturaJanela: 350,
@@ -1282,7 +1296,7 @@ class _DashboardPageState extends State<DashboardPage> {
             } else if (id == 'zorkut') {
               return _construirJanela(
                 id: 'zorkut',
-                titulo: 'ZORKUT - Chat Global',
+                titulo: tr('windows.zorkut_title'),
                 corTema: const Color(0xFFD580FF),
                 larguraJanela:
                     595, // Ajustado para dar folga para o painel de level/ping
@@ -1301,7 +1315,7 @@ class _DashboardPageState extends State<DashboardPage> {
             } else if (id == 'maps') {
               return _construirJanela(
                 id: 'maps',
-                titulo: 'Sistema de Monitoramento por Satélite (Maps)',
+                titulo: tr('windows.maps_title'),
                 corTema: const Color(0xFF00FFCC),
                 larguraJanela: 640,
                 alturaJanela: 440,
@@ -1318,7 +1332,7 @@ class _DashboardPageState extends State<DashboardPage> {
             } else if (id == 'netconfig') {
               return _construirJanela(
                 id: 'netconfig',
-                titulo: 'Propriedades de Rede TCP/IP (NetConfig)',
+                titulo: tr('windows.netconfig_title'),
                 corTema: const Color(0xFF38BDF8),
                 larguraJanela: 520,
                 alturaJanela: 520,
@@ -1354,9 +1368,9 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'SD-DOS Server Manager (7 Days to Die)',
-                    style: TextStyle(
+                  Text(
+                    tr('topbar.title'),
+                    style: const TextStyle(
                       color: Color(0xFF39FF14),
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1659,11 +1673,98 @@ class _DashboardPageState extends State<DashboardPage> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 0. Seletor de Idioma estilo Bandeja do Windows (POR / BRA)
+                      PopupMenuButton<String>(
+                        tooltip: tr('tray_and_logs.tooltip_language'),
+                        color: const Color(0xFF141414),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          side: BorderSide(
+                            color: const Color(0xFF39FF14)
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        offset: const Offset(
+                          0,
+                          -95,
+                        ), // Abre o menu para cima da barra de tarefas
+                        onSelected: (novoCodigo) async {
+                          await LangService.instance.mudarIdioma(novoCodigo);
+                          setState(() {}); // <-- Força o DashboardPage e todas as janelas abertas a redesenharem na hora!
+                        },
+                        itemBuilder: (context) {
+                          return LangService.idiomasDisponiveis.entries.map((
+                            entry,
+                          ) {
+                            final selecionado =
+                                entry.key == LangService.instance.idiomaAtual;
+                            return PopupMenuItem<String>(
+                              value: entry.key,
+                              height: 34,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    selecionado
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_unchecked,
+                                    size: 14,
+                                    color: selecionado
+                                        ? const Color(0xFF39FF14)
+                                        : Colors.white54,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    entry.value,
+                                    style: TextStyle(
+                                      color: selecionado
+                                          ? const Color(0xFF39FF14)
+                                          : Colors.white,
+                                      fontSize: 12,
+                                      fontFamily: 'CustomFontA',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                LangService.instance.siglaTopo,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.1,
+                                  fontFamily: 'CustomFontA',
+                                ),
+                              ),
+                              Text(
+                                LangService.instance.siglaBase,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  height: 1.1,
+                                  fontFamily: 'CustomFontA',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       // 1. Ícone Status do Script / Telnet 7D2D
                       Tooltip(
                         message: _scriptConectado
-                            ? 'Script 7D2D: Recebendo logs'
-                            : 'Script 7D2D: Sem resposta do Telnet',
+                            ? tr('tray_and_logs.tooltip_script_on')
+                            : tr('tray_and_logs.tooltip_script_off'),
                         child: Icon(
                           Icons.article_outlined,
                           size: 16,
@@ -1676,7 +1777,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
                       // 2. Ícone Status do Proxy (WebSocket)
                       Tooltip(
-                        message: _conectado ? 'Proxy WebSocket: Conectado' : 'Proxy WebSocket: Desconectado (Verifique o Python)',
+                        message: _conectado
+                            ? tr('tray_and_logs.tooltip_proxy_on')
+                            : tr('tray_and_logs.tooltip_proxy_off'),
                         child: Icon(
                           Icons.account_tree_outlined,
                           size: 16,
