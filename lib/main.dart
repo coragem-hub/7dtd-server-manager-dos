@@ -10,7 +10,9 @@ import 'package:sd_dos_dart/apps/zorkut_app.dart';
 import 'package:sd_dos_dart/apps/maps_app.dart';
 import 'package:sd_dos_dart/apps/netconfig_app.dart';
 import 'package:sd_dos_dart/models/jogador_status.dart';
+import 'package:sd_dos_dart/services/player_storage_service.dart';
 import 'package:sd_dos_dart/services/lang_service.dart';
+import 'package:sd_dos_dart/services/web_sync_service.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -69,6 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   //== INICIO MODULO 1: LISTAS, CONSTANTES, VARIÁVEIS E LOOPS ==//
 
+  String nomeBot = "BotAdm";
   final List<String> _logs =
       []; // Lista mestre de texto bruto do console do servidor
   final List<LogToken> _logsTratadosLogSplit = [];
@@ -149,11 +152,16 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Lê as credenciais salvas antes de tentar abrir o WebSocket
   Future<void> _carregarConfiguracoesEConectar() async {
+    await PlayerStorageService.instance.carregarDoDisco();
+    await WebSyncService.instance.carregarConfiguracoes();
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       ipProxy = prefs.getString('proxy_ip') ?? "";
       portaProxy = prefs.getString('proxy_porta') ?? "8082";
       token = prefs.getString('proxy_token') ?? "";
+      nomeBot = prefs.getString('bot_name') ?? "BotAdm";
+      _jogadoresHistorico.clear();
+      _jogadoresHistorico.addAll(PlayerStorageService.instance.todosJogadores);
     });
 
     if (ipProxy.isEmpty || token.isEmpty) {
@@ -167,8 +175,17 @@ class _DashboardPageState extends State<DashboardPage> {
       _trazerParaFrente('netconfig');
       return;
     }
-
     _conectarAoProxy();
+  }
+
+  Future<void> _alterarNomeBot(String novoNome) async {
+    final limpo = novoNome.trim();
+    if (limpo.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('bot_name', limpo);
+    setState(() {
+      nomeBot = limpo;
+    });
   }
 
   // Função chamada pelo app NetConfig ao clicar em "Salvar e Conectar"
@@ -229,6 +246,9 @@ class _DashboardPageState extends State<DashboardPage> {
     // Libera os novos controladores de rolagem independentes
     _scrollFundoController.dispose();
     super.dispose();
+
+    PlayerStorageService.instance.salvarImediatamente();
+    WebSyncService.instance.pararSincronizacao();
   }
 
   //== FIM MODULO 2.1: FUNÇÕES DE CONEXÃO COM O PROXY ==//
@@ -294,7 +314,6 @@ class _DashboardPageState extends State<DashboardPage> {
           if (_channel != canalAtual || tentativaAtual != _idTentativaConexao) {
             return;
           }
-          // ... (SEU CÓDIGO DE TRATAMENTO DE MENSAGENS CONTINUA IGUAL AQUI) ...
 
           if (!_scriptConectado) setState(() => _scriptConectado = true);
           final linhaBruta = mensagem.toString();
@@ -302,7 +321,6 @@ class _DashboardPageState extends State<DashboardPage> {
           // 1. Tratamento: Identificando os tipos de Logs
           LogToken tokenTratado;
 
-          // REGRA 1: Se for o início do comando 'lp', limpamos a lista temporária dos online
           // REGRA 1: Se for o início do comando 'lp', limpamos a lista temporária e incrementamos o ciclo
           if (linhaBruta.contains("Executing command 'lp'")) {
             _jogadoresOnline.clear();
@@ -360,6 +378,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ping: int.parse(match.group(10)!),
               zonaAtual: zonaCalculada,
             );
+            PlayerStorageService.instance.registrarOuAtualizar(novoJogador);
 
             final jogadorAntigo =
                 _jogadoresHistorico.any((j) => j.id == novoJogador.id)
@@ -371,11 +390,11 @@ class _DashboardPageState extends State<DashboardPage> {
               if (zonaCalculada == "PVP") {
                 enviarMensagemHub(
                   comandoBruto:
-                      'pm "${novoJogador.nome}" "${tr('automation.pvp_warning_pm')}"',
+                      'pm "${novoJogador.nome}" "${tr('automation.pvp_warning_pm', args: {'bot': nomeBot})}"',
                   tagExibicao: "[PM]",
                   textoLimpo: tr(
                     'automation.pvp_log_sent',
-                    args: {'player': novoJogador.nome},
+                    args: {'bot': nomeBot, 'player': novoJogador.nome},
                   ),
                   corLabel: Colors.purpleAccent,
                 );
@@ -384,11 +403,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   zonaCalculada == "PVE") {
                 enviarMensagemHub(
                   comandoBruto:
-                      'pm "${novoJogador.nome}" "${tr('automation.pve_warning_pm')}"',
+                      'pm "${novoJogador.nome}" "${tr('automation.pve_warning_pm', args: {'bot': nomeBot})}"',
                   tagExibicao: "[PM]",
                   textoLimpo: tr(
                     'automation.pve_log_sent',
-                    args: {'player': novoJogador.nome},
+                    args: {'bot': nomeBot, 'player': novoJogador.nome},
                   ),
                   corLabel: Colors.greenAccent,
                 );
@@ -476,7 +495,7 @@ class _DashboardPageState extends State<DashboardPage> {
           }
           // REGRA 6: Comando sayadmin externo (Antes do filtro genérico de comandos)
           else if (linhaBruta.contains("Executing command 'sayadmin ") &&
-              !linhaBruta.contains("sayadmin [39FF14]BotAdm[-] 99")) {
+              !linhaBruta.contains("sayadmin [39FF14]$nomeBot[-] 99")) {
             final inicioCmd =
                 linhaBruta.indexOf("Executing command 'sayadmin ") + 27;
             final fimCmd = linhaBruta.lastIndexOf("' by ");
@@ -613,8 +632,6 @@ class _DashboardPageState extends State<DashboardPage> {
   // Recebe o texto direto do ZorkutApp e aciona o Hub central
   void _enviarChatGlobalZorkut(String msg) {
     if (msg.isEmpty) return;
-
-    // Se o Zorkut estiver no modo VANILLA, ele envia a string começando com 'say "'
     if (msg.startsWith('say "') && msg.endsWith('"')) {
       final textoPuro = msg.substring(5, msg.length - 1);
       enviarMensagemHub(
@@ -624,11 +641,10 @@ class _DashboardPageState extends State<DashboardPage> {
         corLabel: const Color(0xFF39FF14),
       );
     } else {
-      // Modo padrão PRISMA CORE
       enviarMensagemHub(
-        comandoBruto: 'sayadmin [39FF14]BotAdm[-] 99 "$msg"',
+        comandoBruto: 'sayadmin [39FF14]$nomeBot[-] 99 "$msg"',
         tagExibicao: "[MSG]",
-        textoLimpo: "BotAdm: $msg",
+        textoLimpo: "$nomeBot: $msg",
         corLabel: Colors.cyanAccent,
       );
     }
@@ -1303,13 +1319,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 alturaJanela: 360,
                 conteudo: ZorkutApp(
                   todosOsLogs: _logsTratadosLogSplit,
-                  jogadoresZorkut: _jogadoresOnline, // <-- Passando a lista pura diretamente!
+                  jogadoresZorkut: _jogadoresOnline,
+                  historicoJogadores: _jogadoresHistorico,
+                  nomeBot: nomeBot,
+                  onAlterarNomeBot: _alterarNomeBot,
                   onEnviarMensagem: _enviarChatGlobalZorkut,
-
-                  onPlayerClicado: (jogador) {
-                    // Chamada de log segura em ambiente de desenvolvimento ou futura lógica de teletransporte/foco do mapa
-                    debugPrint("Jogador clicado: ${jogador.nome}");
-                  },
                 ),
               );
             } else if (id == 'maps') {
@@ -1337,6 +1351,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 larguraJanela: 520,
                 alturaJanela: 520,
                 conteudo: NetConfigApp(
+                  totalJogadoresOnline: _jogadoresOnline.length,
                   ipInicial: ipProxy,
                   portaInicial: portaProxy,
                   tokenInicial: token,

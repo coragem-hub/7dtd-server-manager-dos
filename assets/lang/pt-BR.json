@@ -96,19 +96,19 @@
     },
     "automation": {
         "pvp_warning_pm": {
-            "text": "[39FF14]BotAdm (MP):[-] [FF7979]Bioma Hostil[-] [eb3f24]PVP ATIVO![-]          Anarquia: Matar, Roubar, Raid, Griefing, Trap, etc.          [F9CA24]Não abuse! Respeite Fronteiras e TODOS os Traders![-]",
+            "text": "[39FF14]{bot} (MP):[-] [FF7979]Bioma Hostil[-] [eb3f24]PVP ATIVO![-]          Anarquia: Matar, Roubar, Raid, Griefing, Trap, etc.          [F9CA24]Não abuse! Respeite Fronteiras e TODOS os Traders![-]",
             "context": "Mensagem privada enviada dentro do jogo 7 Days to Die quando o jogador entra na zona PVP. Preserve exatamente as tags de cor [HEX] e [-] e os espaços."
         },
         "pve_warning_pm": {
-            "text": "[39FF14]BotAdm (MP):[-] [78E08F]Floresta Pinhal[-] [00ff00]PVE ATIVO![-]          Proibido: Matar jogadores, Raid, Griefing, Trap, etc.          [F9CA24]Respeite PVE! Floresta Pinhal e TODOS os Traders![-]",
+            "text": "[39FF14]{bot} (MP):[-] [78E08F]Floresta Pinhal[-] [00ff00]PVE ATIVO![-]          Proibido: Matar jogadores, Raid, Griefing, Trap, etc.          [F9CA24]Respeite PVE! Floresta Pinhal e TODOS os Traders![-]",
             "context": "Mensagem privada enviada dentro do jogo 7 Days to Die quando o jogador retorna à zona segura PVE. Preserve exatamente as tags de cor [HEX] e [-] e os espaços."
         },
         "pvp_log_sent": {
-            "text": "BotAdm enviou aviso de PVP para {player}",
+            "text": "{bot} enviou aviso de PVP para {player}",
             "context": "Registro interno no LogSplit informando que o aviso de PVP foi disparado. Não traduza {player}."
         },
         "pve_log_sent": {
-            "text": "BotAdm enviou aviso de PVE para {player}",
+            "text": "{bot} enviou aviso de PVE para {player}",
             "context": "Registro interno no LogSplit informando que o aviso de PVE foi disparado. Não traduza {player}."
         }
     },
@@ -284,6 +284,70 @@
         "btn_download_bat": {
             "text": "BAIXAR ATALHO (.BAT)",
             "context": "Botão de exportar inicializador Windows .BAT."
+        },
+        "tab_websync": {
+            "text": "3. Web Sync",
+            "context": "Título da terceira aba no NetConfig."
+        },
+        "sec_websync_title": {
+            "text": "SINCRONIZAÇÃO HTTP (CONTADORES DO SITE)",
+            "context": "Subtítulo da seção na aba 3 do NetConfig."
+        },
+        "help_websync_title": {
+            "text": "Como funciona o Web Sync?",
+            "context": "Título do pop-up de ajuda da aba 3."
+        },
+        "help_websync_body": {
+            "text": "• Envia automaticamente a lista de jogadores e contadores online a cada 5 minutos para um serviço gratuito (ex: Firebase Realtime Database).\n• Seu site lê esse JSON diretamente pelo navegador do visitante.\n• Mesmo que o servidor ou o app fechem, a última contagem permanece salva na nuvem.",
+            "context": "Texto explicativo sobre sincronização HTTP. Mantenha as quebras de linha \\n e os marcadores •."
+        },
+        "websync_active": {
+            "text": "Sincronização Automática: ATIVADA (5 min)",
+            "context": "Texto ao lado do switch quando ativado."
+        },
+        "websync_inactive": {
+            "text": "Sincronização Automática: DESATIVADA",
+            "context": "Texto ao lado do switch quando desativado."
+        },
+        "label_websync_url": {
+            "text": "URL do Endpoint JSON (Ex: https://.../jogos/7dtd.json)",
+            "context": "Rótulo do campo de URL na aba 3."
+        },
+        "label_websync_token": {
+            "text": "Token / Secret de Autenticação (Opcional)",
+            "context": "Rótulo do campo de token na aba 3."
+        },
+        "btn_save_websync": {
+            "text": "SALVAR CONFIGURAÇÃO",
+            "context": "Botão de salvar configurações na aba 3."
+        },
+        "btn_test_websync": {
+            "text": "TESTAR ENVIO AGORA",
+            "context": "Botão de teste imediato na aba 3."
+        },
+        "btn_testing_websync": {
+            "text": "ENVIANDO...",
+            "context": "Texto do botão enquanto envia o teste."
+        },
+        "feedback_websync_url_missing": {
+            "text": "Informe a URL do endpoint JSON antes de salvar.",
+            "context": "Mensagem de erro quando a URL está vazia."
+        },
+        "feedback_websync_saved_on": {
+            "text": "Web Sync ativado! Envio automático a cada 5 minutos.",
+            "context": "Feedback ao salvar com Web Sync ativado."
+        },
+        "feedback_websync_saved_off": {
+            "text": "Configurações de Web Sync salvas (Desativado).",
+            "context": "Feedback ao salvar com Web Sync desativado."
+        },
+        "feedback_websync_test_ok": {
+            "text": "Teste concluído! JSON enviado com sucesso para a nuvem.",
+            "context": "Feedback quando o teste HTTP retorna sucesso."
+        },
+        "feedback_websync_test_err": {
+            "text": "Falha no envio. Verifique a URL, o Token e sua conexão.",
+            "context": "Feedback quando o teste HTTP falha."
         }
     },
     "proxy_script": {
@@ -368,6 +432,66 @@
         "player_stats": {
             "text": "Nv: {level}  |  {ping}ms",
             "context": "Subtítulo abaixo do nome do jogador na lista online mostrando nível e latência. Mantenha curto e não traduza {level} nem {ping}."
+        },
+        "off_header": {
+            "text": "OFF ({count})",
+            "context": "Botão na barra superior da lista lateral para exibir jogadores offline. Não traduza {count}."
+        },
+        "bot_subtitle": {
+            "text": "Sistema • Admin",
+            "context": "Subtítulo abaixo do nome do bot na lista lateral."
+        },
+        "inactive_section": {
+            "text": "INATIVOS (ÚLTIMO LOGIN)",
+            "context": "Divisor da lista de jogadores offline."
+        },
+        "last_seen": {
+            "text": "Visto: {date}",
+            "context": "Data do último login de um jogador offline. Não traduza {date}."
+        },
+        "profile_bot_title": {
+            "text": "PERFIL DO SISTEMA (BOT)",
+            "context": "Título da barra superior ao abrir o perfil do bot."
+        },
+        "profile_player_title": {
+            "text": "PERFIL DO JOGADOR",
+            "context": "Título da barra superior ao abrir o perfil de um jogador."
+        },
+        "btn_collapse": {
+            "text": "RECOLHER",
+            "context": "Botão curto para fechar a janela de perfil."
+        },
+        "bot_id_label": {
+            "text": "IDENTIFICAÇÃO DO BOT",
+            "context": "Rótulo acima do nome do bot no perfil."
+        },
+        "tooltip_edit_bot": {
+            "text": "Editar nome do Bot",
+            "context": "Tooltip do ícone de lápis."
+        },
+        "tooltip_save_bot": {
+            "text": "Salvar nome",
+            "context": "Tooltip do ícone de confirmar edição."
+        },
+        "bot_profile_hint": {
+            "text": "• Este nome será usado nos envios do Zorkut (Prisma Core) e avisos automáticos de PVP/PVE.",
+            "context": "Texto explicativo dentro do perfil do bot."
+        },
+        "zone_badge": {
+            "text": "ZONA {zone}",
+            "context": "Badge indicando zona atual do jogador (PVP ou PVE). Não traduza {zone}."
+        },
+        "player_profile_stats": {
+            "text": "ID: {id}  •  Nível: {level}  •  Mortes: {deaths}",
+            "context": "Linha de estatísticas no perfil do jogador. Não traduza {id}, {level} nem {deaths}."
+        },
+        "player_last_pos": {
+            "text": "Última posição: X:{x} Z:{z}",
+            "context": "Coordenadas no perfil do jogador. Não traduza {x} nem {z}."
+        },
+        "player_infractions_placeholder": {
+            "text": "[Área reservada para histórico de infrações e ações administrativas]",
+            "context": "Texto provisório na caixa de infrações do perfil."
         }
     },
     "cmd": {

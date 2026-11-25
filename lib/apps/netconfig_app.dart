@@ -5,12 +5,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:sd_dos_dart/services/lang_service.dart';
+import 'package:sd_dos_dart/services/web_sync_service.dart';
 
 class NetConfigApp extends StatefulWidget {
   final String ipInicial;
   final String portaInicial;
   final String tokenInicial;
   final bool conectado;
+  final int totalJogadoresOnline;
   final Future<void> Function({
     required String novoIp,
     required String novaPorta,
@@ -24,6 +26,7 @@ class NetConfigApp extends StatefulWidget {
     required this.portaInicial,
     required this.tokenInicial,
     required this.conectado,
+    this.totalJogadoresOnline = 0,
     required this.onSalvarEConectar,
   });
 
@@ -36,8 +39,7 @@ class _NetConfigAppState extends State<NetConfigApp> {
   static const Color _corDestaque = Color(0xFF38BDF8); // Azul Ciano Rede
   static const Color _corInputFundo = Color(0xFF0D1B2A);
 
-  int _abaAtual =
-      0; // 0 = Conexão do Painel | 1 = Gerador de Scripts (.py/.bat)
+  int _abaAtual = 0; // 0 = Painel | 1 = Scripts (.py/.bat) | 2 = Web Sync
   String _mensagemStatus = "";
   bool _erroStatus = false;
   bool _salvando = false;
@@ -75,6 +77,13 @@ class _NetConfigAppState extends State<NetConfigApp> {
   bool _ocultarSdtdPass = true;
   bool _ocultarWsToken = true;
 
+  // Controladores da Aba 3 (Web Sync / Contador Site)
+  late TextEditingController _webSyncUrlController;
+  late TextEditingController _webSyncTokenController;
+  bool _webSyncAtivo = false;
+  bool _ocultarWebSyncToken = true;
+  bool _testandoWebSync = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +95,15 @@ class _NetConfigAppState extends State<NetConfigApp> {
         ? widget.portaInicial
         : "8082";
     _wsTokenController.text = widget.tokenInicial;
+
+    // Carrega dados atuais do WebSyncService
+    _webSyncAtivo = WebSyncService.instance.syncAtivo;
+    _webSyncUrlController = TextEditingController(
+      text: WebSyncService.instance.endpointUrl,
+    );
+    _webSyncTokenController = TextEditingController(
+      text: WebSyncService.instance.apiKeyOuSecret,
+    );
   }
 
   @override
@@ -101,6 +119,8 @@ class _NetConfigAppState extends State<NetConfigApp> {
     _wsTokenController.dispose();
     _caminhoPastaBatController.dispose();
     _nomeArquivoPyController.dispose();
+    _webSyncUrlController.dispose();
+    _webSyncTokenController.dispose();
     super.dispose();
   }
 
@@ -137,6 +157,55 @@ class _NetConfigAppState extends State<NetConfigApp> {
       await Future.delayed(const Duration(milliseconds: 800));
       if (mounted) {
         setState(() => _salvando = false);
+      }
+    }
+  }
+
+  // Salva configurações do Web Sync
+  Future<void> _salvarWebSync({bool testarAgora = false}) async {
+    final url = _webSyncUrlController.text.trim();
+    final token = _webSyncTokenController.text.trim();
+
+    if ((_webSyncAtivo || testarAgora) && url.isEmpty) {
+      _exibirFeedback(tr('netconfig.feedback_websync_url_missing'), erro: true);
+      return;
+    }
+
+    await WebSyncService.instance.salvarConfiguracoes(
+      ativo: _webSyncAtivo,
+      url: url,
+      token: token,
+    );
+
+    if (!testarAgora) {
+      _exibirFeedback(
+        _webSyncAtivo
+            ? tr('netconfig.feedback_websync_saved_on')
+            : tr('netconfig.feedback_websync_saved_off'),
+      );
+      return;
+    }
+
+    // Executa envio imediato para teste
+    setState(() => _testandoWebSync = true);
+    try {
+      final bool estadoAnterior = WebSyncService.instance.syncAtivo;
+      WebSyncService.instance.syncAtivo = true;
+
+      final sucesso = await WebSyncService.instance.enviarDadosAgora(
+        jogadoresOnlineAgora: widget.totalJogadoresOnline,
+      );
+
+      WebSyncService.instance.syncAtivo = estadoAnterior;
+
+      if (sucesso) {
+        _exibirFeedback(tr('netconfig.feedback_websync_test_ok'));
+      } else {
+        _exibirFeedback(tr('netconfig.feedback_websync_test_err'), erro: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _testandoWebSync = false);
       }
     }
   }
@@ -238,47 +307,40 @@ async def gerenciar_interface(websocket):
     if token_recebido != WS_TOKEN:
         print("${tr('proxy_script.py_blocked')}")
         await websocket.close(code=4001, reason="Authentication failed: Invalid Token")
-        return
-
-    interfaces_conectadas.add(websocket)
-    print(f"${tr('proxy_script.py_client_connected')}")
-    
-    try:
-        async for mensagem in websocket:
-            comando = mensagem.strip()
-            
-            if jogo_writer and not jogo_writer.is_closing():
-                print(f"${tr('proxy_script.py_cmd_injected')}")
-                jogo_writer.write((comando + "\\r\\n").encode('utf-8'))
-                await jogo_writer.drain()
-            else:
-                await websocket.send("${tr('proxy_script.py_err_not_connected')}")
-                
-    except websockets.exceptions.ConnectionClosed:
-        pass
-    finally:
-        if websocket in interfaces_conectadas:
-            interfaces_conectadas.remove(websocket)
-        print(f"${tr('proxy_script.py_client_disconnected')}")
-
+return
+interfaces_conectadas.add(websocket)
+print(f"${tr('proxy_script.py_client_connected')}")
+try:
+async for mensagem in websocket:
+comando = mensagem.strip()
+if jogo_writer and not jogo_writer.is_closing():
+print(f"${tr('proxy_script.py_cmd_injected')}")
+jogo_writer.write((comando + "\r\n").encode('utf-8'))
+await jogo_writer.drain()
+else:
+await websocket.send("${tr('proxy_script.py_err_not_connected')}")
+except websockets.exceptions.ConnectionClosed:
+pass
+finally:
+if websocket in interfaces_conectadas:
+interfaces_conectadas.remove(websocket)
+print(f"${tr('proxy_script.py_client_disconnected')}")
 async def main():
-    server = await websockets.serve(
-        gerenciar_interface,
-        WS_HOST,
-        WS_PORT,
-        ping_interval=10,
-        ping_timeout=5,
-    )
-    print(f"${tr('proxy_script.py_listening')}")
-    
-    asyncio.create_task(conectar_ao_jogo())
-    await server.wait_closed()
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\\n${tr('proxy_script.py_stopped')}")
+server = await websockets.serve(
+gerenciar_interface,
+WS_HOST,
+WS_PORT,
+ping_interval=10,
+ping_timeout=5,
+)
+print(f"${tr('proxy_script.py_listening')}")
+asyncio.create_task(conectar_ao_jogo())
+await server.wait_closed()
+if name == "main":
+try:
+asyncio.run(main())
+except KeyboardInterrupt:
+print("\n${tr('proxy_script.py_stopped')}")
 ''';
     final uriDestino = await FilePicker.saveFile(
       dialogTitle: tr('netconfig.dialog_save_py'),
@@ -428,11 +490,17 @@ pause
                   icone: Icons.settings_ethernet,
                   titulo: tr('netconfig.tab_connection'),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _buildBotaoAba(
                   indice: 1,
                   icone: Icons.build_circle_outlined,
                   titulo: tr('netconfig.tab_generator'),
+                ),
+                const SizedBox(width: 6),
+                _buildBotaoAba(
+                  indice: 2,
+                  icone: Icons.cloud_upload_outlined,
+                  titulo: tr('netconfig.tab_websync'),
                 ),
                 const Spacer(),
                 // Indicador de status da rede
@@ -475,7 +543,9 @@ pause
               padding: const EdgeInsets.all(14),
               child: _abaAtual == 0
                   ? _buildAbaConexaoPainel()
-                  : _buildAbaGeradorScripts(),
+                  : _abaAtual == 1
+                  ? _buildAbaGeradorScripts()
+                  : _buildAbaWebSync(),
             ),
           ),
           // RODAPÉ DE FEEDBACK VISUAL
@@ -810,6 +880,135 @@ pause
     );
   }
 
+  // ABA 3: Sincronização HTTP (Nuvem / Contadores do Site)
+  Widget _buildAbaWebSync() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              tr('netconfig.sec_websync_title'),
+              style: TextStyle(
+                color: _corDestaque,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 4),
+            _buildIconeAjuda(
+              titulo: tr('netconfig.help_websync_title'),
+              mensagem: tr('netconfig.help_websync_body'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: _corInputFundo,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: _webSyncAtivo
+                  ? const Color(0xFF39FF14).withValues(alpha: 0.5)
+                  : Colors.white24,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _webSyncAtivo
+                    ? tr('netconfig.websync_active')
+                    : tr('netconfig.websync_inactive'),
+                style: TextStyle(
+                  color: _webSyncAtivo
+                      ? const Color(0xFF39FF14)
+                      : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Switch(
+                value: _webSyncAtivo,
+                activeThumbColor: const Color(0xFF39FF14),
+                onChanged: (valor) {
+                  setState(() => _webSyncAtivo = valor);
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildCampoTexto(
+          controller: _webSyncUrlController,
+          label: tr('netconfig.label_websync_url'),
+        ),
+        const SizedBox(height: 12),
+        _buildCampoTexto(
+          controller: _webSyncTokenController,
+          label: tr('netconfig.label_websync_token'),
+          oculto: _ocultarWebSyncToken,
+          onAlternarVisibilidade: () =>
+              setState(() => _ocultarWebSyncToken = !_ocultarWebSyncToken),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _corDestaque,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                ),
+                onPressed: () => _salvarWebSync(testarAgora: false),
+                icon: const Icon(Icons.save_alt, size: 16),
+                label: Text(
+                  tr('netconfig.btn_save_websync'),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF39FF14),
+                  side: const BorderSide(color: Color(0xFF39FF14)),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                ),
+                onPressed: _testandoWebSync
+                    ? null
+                    : () => _salvarWebSync(testarAgora: true),
+                icon: _testandoWebSync
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF39FF14),
+                        ),
+                      )
+                    : const Icon(Icons.cloud_upload, size: 16),
+                label: Text(
+                  _testandoWebSync
+                      ? tr('netconfig.btn_testing_websync')
+                      : tr('netconfig.btn_test_websync'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildBotaoAba({
     required int indice,
     required IconData icone,
@@ -823,7 +1022,7 @@ pause
       }),
       borderRadius: BorderRadius.circular(4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
         decoration: BoxDecoration(
           color: ativo
               ? _corDestaque.withValues(alpha: 0.2)
@@ -837,7 +1036,7 @@ pause
         child: Row(
           children: [
             Icon(icone, size: 13, color: ativo ? _corDestaque : Colors.white54),
-            const SizedBox(width: 5),
+            const SizedBox(width: 4),
             Text(
               titulo,
               style: TextStyle(

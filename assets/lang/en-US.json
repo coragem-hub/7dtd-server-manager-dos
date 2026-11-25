@@ -96,19 +96,19 @@
     },
     "automation": {
         "pvp_warning_pm": {
-            "text": "[39FF14]BotAdm (PM):[-] [FF7979]Hostile Biome[-] [eb3f24]PVP ACTIVE![-]          Anarchy: Kill, Steal, Raid, Griefing, Trap, etc.               [F9CA24]Do not abuse! Respect Borders and ALL Traders![-]",
+            "text": "[39FF14]{bot} (PM):[-] [FF7979]Hostile Biome[-] [eb3f24]PVP ACTIVE![-]          Anarchy: Kill, Steal, Raid, Griefing, Trap, etc.               [F9CA24]Do not abuse! Respect Borders and ALL Traders![-]",
             "context": "Private message sent inside 7 Days to Die when a player enters the PVP zone. Preserve exact color tags [HEX] and [-] and spacing."
         },
         "pve_warning_pm": {
-            "text": "[39FF14]BotAdm (PM):[-] [78E08F]Pine Forest[-] [00ff00]PVE ACTIVE![-]          Forbidden: Killing players, Raid, Griefing, Trap, etc.          [F9CA24]Respect PVE! Pine Forest and ALL Traders![-]",
+            "text": "[39FF14]{bot} (PM):[-] [78E08F]Pine Forest[-] [00ff00]PVE ACTIVE![-]          Forbidden: Killing players, Raid, Griefing, Trap, etc.          [F9CA24]Respect PVE! Pine Forest and ALL Traders![-]",
             "context": "Private message sent inside 7 Days to Die when a player returns to the PVE safe zone. Preserve exact color tags [HEX] and [-] and spacing."
         },
         "pvp_log_sent": {
-            "text": "BotAdm sent PVP warning to {player}",
+            "text": "{bot} sent PVP warning to {player}",
             "context": "Internal LogSplit entry stating the PVP warning was triggered. Do not translate {player}."
         },
         "pve_log_sent": {
-            "text": "BotAdm sent PVE warning to {player}",
+            "text": "{bot} sent PVE warning to {player}",
             "context": "Internal LogSplit entry stating the PVE warning was triggered. Do not translate {player}."
         }
     },
@@ -284,6 +284,70 @@
         "btn_download_bat": {
             "text": "DOWNLOAD LAUNCHER (.BAT)",
             "context": "Button to export Windows .BAT launcher."
+        },
+        "tab_websync": {
+            "text": "3. Web Sync",
+            "context": "Third tab title in NetConfig."
+        },
+        "sec_websync_title": {
+            "text": "HTTP SYNC (WEBSITE COUNTERS)",
+            "context": "Section title in tab 3."
+        },
+        "help_websync_title": {
+            "text": "How does Web Sync work?",
+            "context": "Help popup title in tab 3."
+        },
+        "help_websync_body": {
+            "text": "• Automatically sends player list and online counters every 5 minutes to a free cloud endpoint (e.g., Firebase Realtime Database).\n• Your website reads this JSON directly via the visitor's browser.\n• Even if the server or app closes, the latest count stays saved in the cloud.",
+            "context": "Help text for HTTP sync. Keep \\n and •."
+        },
+        "websync_active": {
+            "text": "Auto Sync: ENABLED (5 min)",
+            "context": "Switch label when active."
+        },
+        "websync_inactive": {
+            "text": "Auto Sync: DISABLED",
+            "context": "Switch label when inactive."
+        },
+        "label_websync_url": {
+            "text": "JSON Endpoint URL (e.g., https://.../games/7dtd.json)",
+            "context": "URL field label."
+        },
+        "label_websync_token": {
+            "text": "Auth Token / Secret (Optional)",
+            "context": "Token field label."
+        },
+        "btn_save_websync": {
+            "text": "SAVE CONFIGURATION",
+            "context": "Save button in tab 3."
+        },
+        "btn_test_websync": {
+            "text": "TEST UPLOAD NOW",
+            "context": "Test upload button in tab 3."
+        },
+        "btn_testing_websync": {
+            "text": "UPLOADING...",
+            "context": "Button text while uploading."
+        },
+        "feedback_websync_url_missing": {
+            "text": "Enter the JSON endpoint URL before saving.",
+            "context": "Error when URL is empty."
+        },
+        "feedback_websync_saved_on": {
+            "text": "Web Sync enabled! Auto-uploading every 5 minutes.",
+            "context": "Feedback when saved active."
+        },
+        "feedback_websync_saved_off": {
+            "text": "Web Sync settings saved (Disabled).",
+            "context": "Feedback when saved inactive."
+        },
+        "feedback_websync_test_ok": {
+            "text": "Test complete! JSON successfully uploaded to cloud.",
+            "context": "Feedback on HTTP test success."
+        },
+        "feedback_websync_test_err": {
+            "text": "Upload failed. Check URL, Token, and internet connection.",
+            "context": "Feedback on HTTP test failure."
         }
     },
     "proxy_script": {
@@ -368,6 +432,66 @@
         "player_stats": {
             "text": "Lvl: {level}  |  {ping}ms",
             "context": "Subtitle below player name in online list showing level and latency. Keep short and do not translate {level} or {ping}."
+        },
+        "off_header": {
+            "text": "OFF ({count})",
+            "context": "Toggle button for offline players. Keep {count}."
+        },
+        "bot_subtitle": {
+            "text": "System • Admin",
+            "context": "Subtitle under bot name."
+        },
+        "inactive_section": {
+            "text": "INACTIVE (LAST LOGIN)",
+            "context": "Divider for offline players."
+        },
+        "last_seen": {
+            "text": "Seen: {date}",
+            "context": "Last login date label. Keep {date}."
+        },
+        "profile_bot_title": {
+            "text": "SYSTEM PROFILE (BOT)",
+            "context": "Top bar title for bot profile."
+        },
+        "profile_player_title": {
+            "text": "PLAYER PROFILE",
+            "context": "Top bar title for player profile."
+        },
+        "btn_collapse": {
+            "text": "COLLAPSE",
+            "context": "Button to close profile drawer."
+        },
+        "bot_id_label": {
+            "text": "BOT IDENTIFICATION",
+            "context": "Label above bot name."
+        },
+        "tooltip_edit_bot": {
+            "text": "Edit Bot name",
+            "context": "Edit pencil tooltip."
+        },
+        "tooltip_save_bot": {
+            "text": "Save name",
+            "context": "Confirm edit tooltip."
+        },
+        "bot_profile_hint": {
+            "text": "• This name will be used in Zorkut broadcasts (Prisma Core) and automated PVP/PVE warnings.",
+            "context": "Hint text inside bot profile."
+        },
+        "zone_badge": {
+            "text": "{zone} ZONE",
+            "context": "Player current zone badge. Keep {zone}."
+        },
+        "player_profile_stats": {
+            "text": "ID: {id}  •  Level: {level}  •  Deaths: {deaths}",
+            "context": "Player stats line. Keep placeholders."
+        },
+        "player_last_pos": {
+            "text": "Last position: X:{x} Z:{z}",
+            "context": "Player coordinates line. Keep placeholders."
+        },
+        "player_infractions_placeholder": {
+            "text": "[Reserved area for infractions history and admin actions]",
+            "context": "Placeholder in infractions box."
         }
     },
     "cmd": {
